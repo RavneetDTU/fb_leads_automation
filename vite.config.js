@@ -6,4 +6,12 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), 
     tailwindcss()],
+
+    preview: {
+    host: true,
+    port: 5015, // or 5014 depending on app
+    allowedHosts: [
+      'leadsauto.jarviscalling.ai'
+    ]
+  }
 })
