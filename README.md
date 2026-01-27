@@ -1,4 +1,4 @@
-# Mets Leads
+# Meta Leads
 
 Lead management platform with Google Calendar integration.
 
