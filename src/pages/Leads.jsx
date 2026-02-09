@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Input } from '../components/ui/input';
 import { Search, Loader2 } from 'lucide-react';
 import { LeadModal } from '../components/LeadModal';
+import { TemplateModal } from '../components/TemplateModal';
 
 // Mock data stays here as a fallback
 const mockLeads = [
@@ -24,6 +25,10 @@ export function Leads() {
     const [loading, setLoading] = useState(false);
     const [searchParams] = useSearchParams();
 
+    // Template selection state
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+
     const campaignFilter = searchParams.get('campaign');
 
     // API FETCH LOGIC
@@ -35,7 +40,7 @@ export function Leads() {
             setLoading(true);
 
             try {
-                
+
                 const response = await fetch(`http://localhost:5000/api/leads?campaignId=${campaignFilter}`);
                 if (response.ok) {
                     const data = await response.json();
@@ -67,16 +72,34 @@ export function Leads() {
         ? displayLeads[0].campaign
         : null;
 
+    // Handle template selection
+    const handleTemplateSelect = (template) => {
+        setSelectedTemplate(template);
+        console.log('Template selected:', template.elementName);
+    };
+
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
     return (
         <div className="min-h-screen bg-background">
             <div className="px-8 py-5">
                 <div className="mb-6 pb-4 border-b border-border">
-                    <p className="text-sm text-muted-foreground mb-1">user@jarviscalling.ai's Org</p>
-                    <h1 className="text-3xl tracking-tight font-heading font-semibold text-slate-900">
-                        {campaignName ? `${campaignName} - Leads` : 'All Leads'}
-                    </h1>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-muted-foreground mb-1">user@jarviscalling.ai's Org</p>
+                            <h1 className="text-3xl tracking-tight font-heading font-semibold text-slate-900">
+                                {campaignName ? `${campaignName} - Leads` : 'All Leads'}
+                            </h1>
+                        </div>
+
+                        {/* Select Template Button */}
+                        <button
+                            onClick={() => setShowTemplateModal(true)}
+                            className="px-4 py-2.5 border border-border rounded-md bg-white  text-foreground cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap"
+                        >
+                            {selectedTemplate ? selectedTemplate.elementName : 'Select Template'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search Bar */}
@@ -138,6 +161,13 @@ export function Leads() {
 
             {selectedLead && (
                 <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+            )}
+
+            {showTemplateModal && (
+                <TemplateModal
+                    onClose={() => setShowTemplateModal(false)}
+                    onSelectTemplate={handleTemplateSelect}
+                />
             )}
         </div>
     );
