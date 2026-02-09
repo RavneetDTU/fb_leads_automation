@@ -41,6 +41,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Active',
         createdAt: 'Dec 10, 2024',
+        selectedTemplate: 'gems_benefits_renewed',
     },
     {
         id: 2,
@@ -52,6 +53,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Active',
         createdAt: 'Dec 8, 2024',
+        selectedTemplate: 'wax_removal_followup',
     },
     {
         id: 3,
@@ -63,6 +65,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Paused',
         createdAt: 'Dec 5, 2024',
+        selectedTemplate: 'No Template Selected',
     },
     {
         id: 4,
@@ -74,6 +77,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Active',
         createdAt: 'Dec 1, 2024',
+        selectedTemplate: 'No Template Selected',
     },
     {
         id: 5,
@@ -85,6 +89,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Active',
         createdAt: 'Nov 28, 2024',
+        selectedTemplate: 'No Template Selected',
     },
     {
         id: 6,
@@ -96,6 +101,7 @@ const DUMMY_CAMPAIGNS = [
         convertedLeads: 25,
         status: 'Active',
         createdAt: 'Nov 25, 2024',
+        selectedTemplate: 'gems_benefits_renewed',
     },
 ];
 
@@ -245,12 +251,20 @@ export function Campaigns() {
                                     <h3 className="font-heading font-semibold mb-0.5 text-foreground">{campaign.name}</h3>
                                     <p className="text-sm text-muted-foreground">{campaign.platform}</p>
                                 </div>
-                                <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.status === 'Active'
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                    }`}>
-                                    {campaign.status}
-                                </span>
+                                <div className="flex flex-col gap-2 items-end">
+                                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.status === 'Active'
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-gray-50 text-gray-600 border border-gray-200'
+                                        }`}>
+                                        {campaign.status}
+                                    </span>
+                                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.selectedTemplate === 'No Template Selected'
+                                        ? 'bg-gray-50 text-gray-600 border border-gray-200'
+                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        }`}>
+                                        {campaign.selectedTemplate}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="space-y-2 mb-2.5">
