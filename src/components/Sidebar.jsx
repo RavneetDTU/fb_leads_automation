@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Megaphone, Calendar, TrendingUp, MessageCircle, Settings, CalendarPlus, CalendarCheck } from 'lucide-react';
 import { calendarManager } from '../utils/calendarManager';
+import { AddCalendarModal } from './AddCalendarModal';
 
 function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [calendars, setCalendars] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Load calendars from localStorage on mount
   useEffect(() => {
@@ -18,12 +20,9 @@ function Sidebar() {
     setCalendars(allCalendars);
   };
 
-  const handleAddCalendar = () => {
-    const storeName = prompt('Enter store name:');
-    if (!storeName || !storeName.trim()) return;
-
+  const handleAddCalendar = (storeName) => {
     try {
-      const newCalendar = calendarManager.create(storeName.trim());
+      const newCalendar = calendarManager.create(storeName);
       loadCalendars(); // Refresh the list
       navigate(`/calendar/${newCalendar.id}`);
     } catch (error) {
@@ -108,7 +107,7 @@ function Sidebar() {
             {/* Add Calendar Button */}
             <li>
               <button
-                onClick={handleAddCalendar}
+                onClick={() => setShowAddModal(true)}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               >
                 <CalendarPlus className="w-5 h-5" />
@@ -125,6 +124,13 @@ function Sidebar() {
           © 2024 JarvisCalling
         </p>
       </div>
+
+      {/* Add Calendar Modal */}
+      <AddCalendarModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddCalendar}
+      />
     </aside>
   );
 }
