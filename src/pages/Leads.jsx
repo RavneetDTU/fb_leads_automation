@@ -126,8 +126,8 @@ export function Leads() {
                             onClick={() => setShowTemplateModal(true)}
                             disabled={savingTemplate}
                             className={`px-4 py-2.5 border rounded-md text-foreground cursor-pointer transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2 ${templateSaveSuccess
-                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                                    : 'bg-white border-border hover:bg-slate-50 hover:border-slate-400'
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                : 'bg-white border-border hover:bg-slate-50 hover:border-slate-400'
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {savingTemplate && <Loader2 className="w-4 h-4 animate-spin" />}

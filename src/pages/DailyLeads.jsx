@@ -18,6 +18,7 @@ export default function DailyLeads() {
     const [leads, setLeads] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [sendWithAI, setSendWithAI] = useState(false);
 
     // Fetch leads when date changes
     useEffect(() => {
@@ -47,15 +48,32 @@ export default function DailyLeads() {
                     <h1 className="text-3xl tracking-tight font-heading font-semibold">Daily Leads</h1>
                 </div>
 
-                {/* Date Picker */}
-                <div className="mb-5">
-                    <label className="block text-sm font-medium text-foreground mb-2">Select Date</label>
-                    <Input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="max-w-xs bg-white border-border focus:ring-1 focus:ring-primary"
-                    />
+                {/* Date Picker with AI Toggle */}
+                <div className="mb-5 flex items-end justify-between">
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Select Date</label>
+                        <Input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="max-w-xs bg-white border-border focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+
+                    {/* AI Toggle */}
+                    <div className="flex items-center gap-2 pb-1">
+                        <span className="text-sm text-muted-foreground font-medium">Send with AI</span>
+                        <button
+                            onClick={() => setSendWithAI(!sendWithAI)}
+                            className={`relative inline-flex h-6 w-11 items-center cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 ${sendWithAI ? 'bg-blue-500' : 'bg-slate-300'
+                                }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${sendWithAI ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                            />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats for selected date */}
@@ -92,30 +110,70 @@ export default function DailyLeads() {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-muted/30 border-b border-border">
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Time</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Name</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Phone</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Campaign</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Interest</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground">Status</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground w-20">Time</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Name</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Phone</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Campaign</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Interest</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground w-28">Status</th>
+                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground w-24">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {!isLoading && leads.map((lead) => (
                                     <tr
                                         key={lead.id}
-                                        onClick={() => setSelectedLead(lead)}
-                                        className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20 cursor-pointer"
+                                        className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20"
                                     >
-                                        <td className="px-5 py-3 text-sm text-muted-foreground">{lead.time}</td>
-                                        <td className="px-5 py-3 text-sm font-medium text-foreground">{lead.name}</td>
-                                        <td className="px-5 py-3 text-sm text-muted-foreground">{lead.phone}</td>
-                                        <td className="px-5 py-3 text-sm text-muted-foreground">{lead.campaign}</td>
-                                        <td className="px-5 py-3 text-sm text-muted-foreground">{lead.interest}</td>
-                                        <td className="px-5 py-3">
+                                        <td
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            {lead.time}
+                                        </td>
+                                        <td
+                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            {lead.name}
+                                        </td>
+                                        <td
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            {lead.phone}
+                                        </td>
+                                        <td
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            {lead.campaign}
+                                        </td>
+                                        <td
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            {lead.interest}
+                                        </td>
+                                        <td
+                                            className="px-2 py-2.5 cursor-pointer"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
                                             <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${statusColors[lead.status]}`}>
                                                 {lead.status}
                                             </span>
+                                        </td>
+                                        <td className="px-2 py-2.5 text-center">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    console.log('Send message to:', lead.name);
+                                                    // API call will go here later
+                                                }}
+                                                className="px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors shadow-sm cursor-pointer"
+                                            >
+                                                Send Msg
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
