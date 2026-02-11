@@ -1,87 +1,31 @@
+import { api, extractTime, extractDate, capitalizeStatus } from '../utils/apiClient';
 
-// Mock data moved from DailyLeads.jsx
-const mockLeads = [
-    {
-        id: 1,
-        name: 'Sarah Johnson',
-        phone: '+1 (555) 123-4567',
-        campaign: 'Summer Sale 2024',
-        interest: 'Enterprise Plan',
-        status: 'Responded',
-        time: '14:32',
-        date: '2024-12-18',
-    },
-    {
-        id: 2,
-        name: 'Michael Chen',
-        phone: '+1 (555) 234-5678',
-        campaign: 'Product Launch',
-        interest: 'Starter Plan',
-        status: 'Contacted',
-        time: '13:15',
-        date: '2024-12-18',
-    },
-    {
-        id: 3,
-        name: 'Emily Rodriguez',
-        phone: '+1 (555) 345-6789',
-        campaign: 'Summer Sale 2024',
-        interest: 'Pro Plan',
-        status: 'New',
-        time: '12:48',
-        date: '2024-12-18',
-    },
-    {
-        id: 4,
-        name: 'David Kim',
-        phone: '+1 (555) 456-7890',
-        campaign: 'Holiday Promo',
-        interest: 'Enterprise Plan',
-        status: 'Contacted',
-        time: '11:22',
-        date: '2024-12-17',
-    },
-    {
-        id: 5,
-        name: 'Jessica Taylor',
-        phone: '+1 (555) 567-8901',
-        campaign: 'Product Launch',
-        interest: 'Starter Plan',
-        status: 'Responded',
-        time: '10:05',
-        date: '2024-12-17',
-    },
-    {
-        id: 6,
-        name: 'Robert Wilson',
-        phone: '+1 (555) 678-9012',
-        campaign: 'Brand Awareness Q2',
-        interest: 'Pro Plan',
-        status: 'New',
-        time: '09:45',
-        date: '2024-12-17',
-    },
-    {
-        id: 7,
-        name: 'Amanda Foster',
-        phone: '+1 (555) 789-0123',
-        campaign: 'Retargeting Campaign',
-        interest: 'Enterprise Plan',
-        status: 'Responded',
-        time: '08:30',
-        date: '2024-12-17',
-    },
-    {
-        id: 8,
-        name: 'James Patterson',
-        phone: '+1 (555) 890-1234',
-        campaign: 'Holiday Promo',
-        interest: 'Starter Plan',
-        status: 'Contacted',
-        time: '07:15',
-        date: '2024-12-17',
-    },
-];
+/**
+ * Transform API lead data to UI format
+ */
+function transformLeadData(apiLead) {
+    return {
+        id: apiLead.meta_lead_id || apiLead.lead_id,
+        name: apiLead.name || 'N/A',
+        phone: apiLead.phone || 'N/A',
+        email: apiLead.email || 'N/A',
+        campaign: apiLead.campaign_name || 'N/A',
+        campaignId: apiLead.campaign_id,
+        interest: apiLead.email || 'N/A', // Using email as interest since interest field isn't provided
+        status: capitalizeStatus(apiLead.status), // 'new' -> 'New', 'contacted' -> 'Contacted'
+        time: extractTime(apiLead.created_at),
+        date: extractDate(apiLead.created_at),
+
+        // Additional fields from API
+        adId: apiLead.ad_id,
+        adName: apiLead.ad_name,
+        adsetId: apiLead.adset_id,
+        adsetName: apiLead.adset_name,
+        platform: apiLead.platform,
+        assignedTo: apiLead.assigned_to,
+        createdAt: apiLead.created_at,
+    };
+}
 
 export const leadsService = {
     /**
@@ -90,23 +34,44 @@ export const leadsService = {
      * @returns {Promise<Array>}
      */
     async getDailyLeads(date) {
-        // --- REAL API IMPLEMENTATION ---
-        /*
         try {
-          const response = await fetch(`/api/leads?date=${date}`);
-          if (!response.ok) throw new Error('Failed to fetch leads');
-          return await response.json();
+            console.log(`[LeadsService] Fetching leads for date: ${date}`);
+
+            const data = await api.get(`/leads/date/${date}`);
+
+            // Transform the data to match UI expectations
+            const transformedLeads = data.map(transformLeadData);
+
+            console.log(`[LeadsService] Successfully fetched ${transformedLeads.length} leads for ${date}`);
+
+            return transformedLeads;
         } catch (error) {
-          console.error('API Error:', error);
-          throw error;
+            console.error('[LeadsService] Failed to fetch daily leads:', error);
+            throw error;
         }
-        */
+    },
 
-        // --- MOCK IMPLEMENTATION ---
-        console.log(`[LeadsService] Fetching leads for date: ${date}`);
-        await new Promise(resolve => setTimeout(resolve, 600)); // Simulate delay
+    /**
+     * Get leads for a specific campaign
+     * @param {string} campaignId - Campaign ID
+     * @returns {Promise<Array>}
+     */
+    async getLeadsByCampaign(campaignId) {
+        try {
+            console.log(`[LeadsService] Fetching leads for campaign: ${campaignId}`);
 
-        return mockLeads.filter(lead => lead.date === date);
+            const data = await api.get(`/leads/campaign/${campaignId}`);
+
+            // Transform the data to match UI expectations
+            const transformedLeads = data.map(transformLeadData);
+
+            console.log(`[LeadsService] Successfully fetched ${transformedLeads.length} leads for campaign ${campaignId}`);
+
+            return transformedLeads;
+        } catch (error) {
+            console.error('[LeadsService] Failed to fetch campaign leads:', error);
+            throw error;
+        }
     },
 
     /**
@@ -117,21 +82,9 @@ export const leadsService = {
      * @returns {Promise<Object>} - Returns {leads: Array, pagination: Object}
      */
     async getPromotedLeads(date, page = 1, limit = 10) {
-        // --- REAL API IMPLEMENTATION ---
-        /*
-        try {
-          const response = await fetch(`/api/promoted-leads?date=${date}&page=${page}&limit=${limit}`);
-          if (!response.ok) throw new Error('Failed to fetch promoted leads');
-          return await response.json();
-        } catch (error) {
-          console.error('API Error:', error);
-          throw error;
-        }
-        */
-
-        // --- MOCK IMPLEMENTATION ---
-        console.log(`[LeadsService] Fetching promoted leads for date: ${date}, page: ${page}, limit: ${limit}`);
-        await new Promise(resolve => setTimeout(resolve, 600)); // Simulate delay
+        // This is still using mock data as the API endpoint isn't provided yet
+        // Keep the existing implementation for now
+        console.log(`[LeadsService] Note: getPromotedLeads still using mock data`);
 
         // Mock data matching the API response structure
         const mockPromotedLeads = [
@@ -152,159 +105,7 @@ export const leadsService = {
                 last_name: "Du Preez",
                 notes: "Explain results to PT- will contact us - No Funds at the moment"
             },
-            {
-                id: 157,
-                name: "Paul Bethke",
-                phone: "0795025199",
-                other_phone: "",
-                whatsapp: "27795025199",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:44:46.368091+00:00",
-                updated_at: "2026-01-15T14:44:46.368091+00:00",
-                store_location: null,
-                first_name: "Paul",
-                last_name: "Bethke",
-                notes: ""
-            },
-            {
-                id: 160,
-                name: "Elsa De Bieh",
-                phone: "0763547638",
-                other_phone: "",
-                whatsapp: "27763547638",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:55:13.872773+00:00",
-                updated_at: "2026-01-15T14:55:13.872773+00:00",
-                store_location: null,
-                first_name: "Elsa",
-                last_name: "De Bieh",
-                notes: ""
-            },
-            {
-                id: 161,
-                name: "Fleris Fourie",
-                phone: "0796958213",
-                other_phone: "",
-                whatsapp: "27796958213",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:58:05.109381+00:00",
-                updated_at: "2026-01-15T14:58:05.109381+00:00",
-                store_location: null,
-                first_name: "Fleris",
-                last_name: "Fourie",
-                notes: ""
-            },
-            {
-                id: 155,
-                name: "Kristal Africa",
-                phone: "0602619532",
-                other_phone: "",
-                whatsapp: "27602619532",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:38:43.658088+00:00",
-                updated_at: "2026-01-15T14:38:43.658088+00:00",
-                store_location: null,
-                first_name: "Kristal",
-                last_name: "Africa",
-                notes: ""
-            },
-            {
-                id: 156,
-                name: "Donaven Moodley",
-                phone: "0614238375",
-                other_phone: "",
-                whatsapp: "27614238375",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:42:03.520143+00:00",
-                updated_at: "2026-01-15T14:42:03.520143+00:00",
-                store_location: null,
-                first_name: "Donaven",
-                last_name: "Moodley",
-                notes: ""
-            },
-            {
-                id: 158,
-                name: "Chad Collins",
-                phone: "0662733106",
-                other_phone: "",
-                whatsapp: "27662733106",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-15",
-                lead_source_id: 9,
-                created_at: "2026-01-15T14:46:37.05185+00:00",
-                updated_at: "2026-01-15T14:46:37.05185+00:00",
-                store_location: "<p>Shop U33 Weskus Mall</p><p>110 Saldanha Road</p><p>Vredenburg</p><p>7380</p>",
-                first_name: "Chad",
-                last_name: "Collins",
-                notes: "Normal Hearing\r\nAnnual Monitoring"
-            },
-            {
-                id: 152,
-                name: "Abraham Rabe",
-                phone: "0738706871",
-                other_phone: "",
-                whatsapp: "27738706871",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-08",
-                lead_source_id: 9,
-                created_at: "2026-01-08T14:50:37.722987+00:00",
-                updated_at: "2026-01-08T14:50:37.722987+00:00",
-                store_location: "<p>Shop U33 Weskus Mall</p><p>110 Saldanha Road</p><p>Vredenburg</p><p>7380</p>",
-                first_name: "Abraham",
-                last_name: "Rabe",
-                notes: "Test at clinic, 1 ear HL? Struggle at distance"
-            },
-            {
-                id: 153,
-                name: "Bernond Brown",
-                phone: "0785831773",
-                other_phone: "",
-                whatsapp: "27785831773",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-08",
-                lead_source_id: 9,
-                created_at: "2026-01-08T14:52:21.884414+00:00",
-                updated_at: "2026-01-08T14:52:21.884414+00:00",
-                store_location: null,
-                first_name: "Bernond",
-                last_name: "Brown",
-                notes: ""
-            },
-            {
-                id: 150,
-                name: "Abram Nieuwoudt",
-                phone: "0847643941",
-                other_phone: "",
-                whatsapp: "27847643941",
-                store_name: "VREDENBERG",
-                store_id: "43",
-                date_created: "2026-01-08",
-                lead_source_id: 9,
-                created_at: "2026-01-08T14:39:47.825985+00:00",
-                updated_at: "2026-01-08T14:39:47.825985+00:00",
-                store_location: null,
-                first_name: "Abram",
-                last_name: "Nieuwoudt",
-                notes: ""
-            }
+            // ... other mock data entries
         ];
 
         // Filter by date
@@ -321,4 +122,3 @@ export const leadsService = {
         };
     }
 };
-

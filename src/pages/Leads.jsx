@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Input } from '../components/ui/input';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Check } from 'lucide-react';
 import { LeadModal } from '../components/LeadModal';
 import { TemplateModal } from '../components/TemplateModal';
+import { leadsService } from '../services/leads';
+import { campaignsService } from '../services/campaigns';
 
 // Mock data stays here as a fallback
 const mockLeads = [
@@ -28,6 +30,8 @@ export function Leads() {
     // Template selection state
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [savingTemplate, setSavingTemplate] = useState(false);
+    const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
 
     const campaignFilter = searchParams.get('campaign');
 
@@ -36,21 +40,16 @@ export function Leads() {
         const fetchSpecificLeads = async () => {
             if (!campaignFilter) return; // If no campaign selected, show all (mock)
 
-            console.log(`📡 JARVIS: Fetching leads for Campaign ID: ${campaignFilter}`);
+            console.log(`📡 Fetching leads for Campaign ID: ${campaignFilter}`);
             setLoading(true);
 
             try {
-
-                const response = await fetch(`http://localhost:5000/api/leads?campaignId=${campaignFilter}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setLeads(data);
-                    console.log("✅ JARVIS: Specific leads loaded from API.");
-                } else {
-                    throw new Error('API request failed');
-                }
+                // Use the real API service
+                const data = await leadsService.getLeadsByCampaign(campaignFilter);
+                setLeads(data);
+                console.log(`✅ Loaded ${data.length} leads from API for campaign ${campaignFilter}`);
             } catch (error) {
-                console.warn("⚠️ JARVIS: API not found. Filtering mock data instead.");
+                console.warn("⚠️ API call failed. Filtering mock data instead.", error);
                 // Filter mock data as a fallback
                 const filtered = mockLeads.filter(l => String(l.campaignId) === String(campaignFilter));
                 setLeads(filtered);
@@ -72,10 +71,40 @@ export function Leads() {
         ? displayLeads[0].campaign
         : null;
 
-    // Handle template selection
-    const handleTemplateSelect = (template) => {
-        setSelectedTemplate(template);
-        console.log('Template selected:', template.elementName);
+    // Handle template selection and save to campaign
+    const handleTemplateSelect = async (template) => {
+        if (!campaignFilter) {
+            console.error('No campaign ID available');
+            return;
+        }
+
+        setSavingTemplate(true);
+        setTemplateSaveSuccess(false);
+
+        try {
+            // Call the API to update the campaign template
+            const response = await campaignsService.updateCampaignTemplate(
+                campaignFilter,
+                template.elementName
+            );
+
+            console.log('✅ Template updated successfully:', response);
+
+            // Update the selected template in state
+            setSelectedTemplate(template);
+            setTemplateSaveSuccess(true);
+
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                setTemplateSaveSuccess(false);
+            }, 3000);
+
+        } catch (error) {
+            console.error('❌ Failed to update template:', error);
+            alert('Failed to save template. Please try again.');
+        } finally {
+            setSavingTemplate(false);
+        }
     };
 
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
@@ -95,8 +124,14 @@ export function Leads() {
                         {/* Select Template Button */}
                         <button
                             onClick={() => setShowTemplateModal(true)}
-                            className="px-4 py-2.5 border border-border rounded-md bg-white  text-foreground cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap"
+                            disabled={savingTemplate}
+                            className={`px-4 py-2.5 border rounded-md text-foreground cursor-pointer transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2 ${templateSaveSuccess
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                    : 'bg-white border-border hover:bg-slate-50 hover:border-slate-400'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
+                            {savingTemplate && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {templateSaveSuccess && <Check className="w-4 h-4" />}
                             {selectedTemplate ? selectedTemplate.elementName : 'Select Template'}
                         </button>
                     </div>
@@ -144,7 +179,7 @@ export function Leads() {
                                                 {lead.status}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3 text-sm text-slate-500">{lead.date}</td>
+                                        <td className="px-5 py-3 text-sm text-slate-500">{lead.date} {lead.time}</td>
                                     </tr>
                                 ))}
                             </tbody>

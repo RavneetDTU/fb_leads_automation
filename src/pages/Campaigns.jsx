@@ -123,14 +123,16 @@ export function Campaigns() {
         const fetchData = async () => {
             console.log('Campaigns Page: Starting data fetch...');
             setIsLoading(true);
+            setError(null);
             let data = [];
 
             try {
-                // Try fetching from the service (API)
+                // Try fetching from the service (real API)
                 data = await campaignsService.getCampaigns();
                 console.log('Campaigns Page: Data fetched successfully from API', data);
             } catch (err) {
-                console.warn('Campaigns Page: API call failed or not connected. Using LOCAL DUMMY DATA fallback.', err);
+                console.warn('Campaigns Page: API call failed. Using LOCAL DUMMY DATA fallback.', err);
+                setError('Failed to load campaigns from server. Showing cached data.');
                 // Fallback to local dummy data
                 data = DUMMY_CAMPAIGNS;
             }
@@ -155,18 +157,18 @@ export function Campaigns() {
                 },
                 {
                     title: 'Total Leads',
-                    value: format(totalLeads),
-                    change: '— 12%', // hardcoded for now
+                    value: totalLeads > 0 ? format(totalLeads) : 'N/A',
+                    change: totalLeads > 0 ? '— 12%' : '', // hardcoded for now, will need stats API
                 },
                 {
-                    title: 'WhatsApp Messages', // Assuming 'Contacted' maps to msgs for this context, or keep hardcoded if different
-                    value: format(totalContacted),
-                    change: '— 18%',
+                    title: 'WhatsApp Messages',
+                    value: totalContacted > 0 ? format(totalContacted) : 'N/A',
+                    change: totalContacted > 0 ? '— 18%' : '',
                 },
                 {
                     title: 'Converted Leads',
-                    value: format(totalConverted),
-                    change: '— 9%',
+                    value: totalConverted > 0 ? format(totalConverted) : 'N/A',
+                    change: totalConverted > 0 ? '— 9%' : '',
                 },
             ];
 
@@ -221,12 +223,14 @@ export function Campaigns() {
                                     {metric.title}
                                 </div>
                                 <div className="flex items-baseline gap-2">
-                                    <div className="text-2xl font-heading font-semibold text-foreground">
+                                    <div className={`text-2xl font-heading font-semibold ${metric.value === 'N/A' ? 'text-slate-300' : 'text-foreground'}`}>
                                         {metric.value}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {metric.change}
-                                    </div>
+                                    {metric.change && (
+                                        <div className="text-xs text-muted-foreground">
+                                            {metric.change}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -270,19 +274,27 @@ export function Campaigns() {
                             <div className="space-y-2 mb-2.5">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Total Leads</span>
-                                    <span className="text-sm font-medium text-foreground">{campaign.leads}</span>
+                                    <span className={`text-sm font-medium ${campaign.leads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
+                                        {campaign.leads === 0 ? 'N/A' : campaign.leads}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Today Leads</span>
-                                    <span className="text-sm font-medium text-foreground">{campaign.newLeads}</span>
+                                    <span className={`text-sm font-medium ${campaign.newLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
+                                        {campaign.newLeads === 0 ? 'N/A' : campaign.newLeads}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Contacted Leads</span>
-                                    <span className="text-sm font-medium text-foreground">{campaign.contactedLeads}</span>
+                                    <span className={`text-sm font-medium ${campaign.contactedLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
+                                        {campaign.contactedLeads === 0 ? 'N/A' : campaign.contactedLeads}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Converted Leads</span>
-                                    <span className="text-sm font-medium text-foreground">{campaign.convertedLeads}</span>
+                                    <span className={`text-sm font-medium ${campaign.convertedLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
+                                        {campaign.convertedLeads === 0 ? 'N/A' : campaign.convertedLeads}
+                                    </span>
                                 </div>
                             </div>
 
