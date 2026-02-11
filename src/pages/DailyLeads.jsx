@@ -11,20 +11,26 @@ const statusColors = {
 };
 
 export default function DailyLeads() {
-    const [selectedDate, setSelectedDate] = useState('2024-12-18');
+    // Set default date to today in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    const [selectedDate, setSelectedDate] = useState(today);
     const [selectedLead, setSelectedLead] = useState(null);
     const [leads, setLeads] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Fetch leads when date changes
     useEffect(() => {
         const fetchLeads = async () => {
             setIsLoading(true);
+            setError(null);
             try {
                 const data = await leadsService.getDailyLeads(selectedDate);
                 setLeads(data);
             } catch (error) {
                 console.error("Failed to load daily leads:", error);
+                setError(error.message || 'Failed to load leads');
+                setLeads([]); // Clear leads on error
             } finally {
                 setIsLoading(false);
             }
