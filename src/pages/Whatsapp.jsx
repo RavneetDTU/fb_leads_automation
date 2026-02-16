@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, MoreVertical, Phone, Video, Smile, Paperclip, Mic, Send, MessageCircle } from 'lucide-react';
+import { Search, ChevronDown, Smile, Paperclip, Mic, Send, MessageCircle } from 'lucide-react';
 import whatsappLogo from '../assets/whatsapp -logo.png';
 
 const mockChats = [
@@ -83,6 +83,7 @@ const mockMessages = [
 function WhatsAppAutomation() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   return (
     <div className="flex h-screen bg-white">
@@ -149,10 +150,59 @@ function WhatsAppAutomation() {
                 <p className="text-[#667781]" style={{ fontSize: '14px' }}>online</p>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <Video className="w-5 h-5 text-[#54656F] cursor-pointer hover:text-[#3B4A54]" />
-              <Phone className="w-5 h-5 text-[#54656F] cursor-pointer hover:text-[#3B4A54]" />
-              <MoreVertical className="w-5 h-5 text-[#54656F] cursor-pointer hover:text-[#3B4A54]" />
+            <div className="flex items-center pr-4">
+              <div className="relative">
+                {/* Send Status to Meta Button */}
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-[#E2E8F0] rounded-md text-sm text-[#3B4A8] bg-white hover:bg-[#F5F6F6] transition-colors cursor-pointer"
+                >
+                  <span>Send Status to Meta</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <>
+                    {/* Backdrop to close dropdown */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowDropdown(false)}
+                    />
+
+                    {/* Dropdown Content */}
+                    <div className="absolute right-0 top-12 bg-white rounded-md shadow-lg border border-[#E9EDEF] py-2 w-48 z-20">
+                      <button
+                        className="w-full text-left px-4 py-2.5 text-sm text-[#3B4A54] cursor-pointer hover:bg-[#F5F6F6] transition-colors"
+                        onClick={() => {
+                          console.log('Status: Contacted');
+                          setShowDropdown(false);
+                        }}
+                      >
+                        Contacted
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2.5 text-sm text-[#3B4A54] cursor-pointer hover:bg-[#F5F6F6] transition-colors"
+                        onClick={() => {
+                          console.log('Status: Qualified');
+                          setShowDropdown(false);
+                        }}
+                      >
+                        Qualified
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2.5 text-sm text-[#3B4A54] cursor-pointer hover:bg-[#F5F6F6] transition-colors"
+                        onClick={() => {
+                          console.log('Status: Converted');
+                          setShowDropdown(false);
+                        }}
+                      >
+                        Converted
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -201,12 +251,12 @@ function WhatsAppAutomation() {
 
           {/* Message Input */}
           <div className="bg-[#F0F2F5] px-4 py-3 flex items-center gap-2">
-            <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
+            {/* <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
               <Smile className="w-6 h-6 text-[#54656F]" />
-            </button>
-            <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
+            </button> */}
+            {/* <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
               <Paperclip className="w-6 h-6 text-[#54656F]" />
-            </button>
+            </button> */}
             <input
               type="text"
               value={message}
@@ -215,15 +265,11 @@ function WhatsAppAutomation() {
               className="flex-1 bg-white text-[#3B4A54] px-4 py-2.5 rounded-lg outline-none placeholder:text-[#667781] border border-transparent focus:border-[#E9EDEF]"
               style={{ fontSize: '14px' }}
             />
-            {message ? (
-              <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
-                <Send className="w-6 h-6 text-[#54656F]" />
-              </button>
-            ) : (
-              <button className="p-2 hover:bg-[#E9EDEF] rounded-full transition-colors">
-                <Mic className="w-6 h-6 text-[#54656F]" />
-              </button>
-            )}
+
+            {/*send button*/}
+            <button className="p-2 cursor-pointer hover:bg-[#E9EDE2] rounded-full transition-colors">
+              <Send className="w-6 h-6 text-[#54656F5]" />
+            </button>
           </div>
         </div>
       ) : (
