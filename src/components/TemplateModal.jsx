@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Search } from 'lucide-react';
 import { templatesService } from '../services/templates';
 
 /**
@@ -20,6 +20,7 @@ export function TemplateModal({ onClose, onSelectTemplate }) {
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
     const [nextPageUrl, setNextPageUrl] = useState(null);
+    const [templateSearch, setTemplateSearch] = useState('');
 
     // Fetch initial templates on component mount
     useEffect(() => {
@@ -110,6 +111,20 @@ export function TemplateModal({ onClose, onSelectTemplate }) {
                     </button>
                 </div>
 
+                {/* Search Bar */}
+                <div className="px-6 pt-4 pb-1 flex-shrink-0">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Search templates by name..."
+                            value={templateSearch}
+                            onChange={(e) => setTemplateSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-border rounded-md outline-none focus:border-slate-400 focus:ring-[3px] focus:ring-[rgba(0,0,0,0.08)] placeholder:text-muted-foreground transition-colors"
+                        />
+                    </div>
+                </div>
+
                 {/* Content - Scrollable area */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
                     {/* Loading State */}
@@ -127,47 +142,48 @@ export function TemplateModal({ onClose, onSelectTemplate }) {
                     )}
 
                     {/* Templates List */}
-                    {!loading && !error && templates.length > 0 && (
-                        <div className="space-y-0">
-                            {templates.map((template, index) => (
-                                <div key={template.id}>
-                                    {/* Template Card */}
-                                    <div
-                                        onClick={() => handleTemplateClick(template)}
-                                        className={`px-5 py-4 cursor-pointer transition-all duration-150 ${selectedTemplate?.id === template.id
+                    {!loading && !error && templates.length > 0 && (() => {
+                        const filtered = templates.filter(t =>
+                            (t.elementName || '').toLowerCase().includes(templateSearch.toLowerCase())
+                        );
+                        return filtered.length > 0 ? (
+                            <div className="space-y-0">
+                                {filtered.map((template, index) => (
+                                    <div key={template.id}>
+                                        <div
+                                            onClick={() => handleTemplateClick(template)}
+                                            className={`px-5 py-4 cursor-pointer transition-all duration-150 ${selectedTemplate?.id === template.id
                                                 ? 'bg-blue-50 border-l-4 border-l-blue-500'
                                                 : 'hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        {/* Template Name */}
-                                        <h3 className="text-base font-heading font-semibold text-foreground mb-2">
-                                            {template.elementName}
-                                        </h3>
-
-                                        {/* Template Body */}
-                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                                            {template.body}
-                                        </p>
-
-                                        {/* Template Category Badge */}
-                                        <div className="mt-3 flex items-center gap-2">
-                                            <span className="text-xs px-2.5 py-1 rounded-md font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                {template.status}
-                                            </span>
-                                            <span className="text-xs px-2.5 py-1 rounded-md font-medium bg-slate-50 text-slate-600 border border-slate-200">
-                                                {template.category}
-                                            </span>
+                                                }`}
+                                        >
+                                            <h3 className="text-base font-heading font-semibold text-foreground mb-2">
+                                                {template.elementName}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                                {template.body}
+                                            </p>
+                                            <div className="mt-3 flex items-center gap-2">
+                                                <span className="text-xs px-2.5 py-1 rounded-md font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    {template.status}
+                                                </span>
+                                                <span className="text-xs px-2.5 py-1 rounded-md font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                                    {template.category}
+                                                </span>
+                                            </div>
                                         </div>
+                                        {index < filtered.length - 1 && (
+                                            <div className="border-b border-border"></div>
+                                        )}
                                     </div>
-
-                                    {/* Horizontal Divider - except for last item */}
-                                    {index < templates.length - 1 && (
-                                        <div className="border-b border-border"></div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-muted-foreground text-sm">No templates match &ldquo;{templateSearch}&rdquo;</p>
+                            </div>
+                        );
+                    })()}
 
                     {/* No Templates State */}
                     {!loading && !error && templates.length === 0 && (
