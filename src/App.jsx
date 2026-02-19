@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 // Layouts
@@ -15,6 +14,7 @@ import DailyLeads from './pages/DailyLeads'
 import PromotedLeads from './pages/PromotedLeads'
 import Whatsapp from './pages/Whatsapp'
 import { CalendarPage } from './pages/CalendarPage'
+import BookCalendarEvent from './pages/BookCalendarEvent'
 
 function App() {
   return (
@@ -36,6 +36,7 @@ function App() {
           <Route path="/whatsapp" element={<Whatsapp />} />
           <Route path="/calendar/:calendarId" element={<CalendarPage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/book-calendar-event" element={<BookCalendarEvent />} />
         </Route>
       </Routes>
     </Router>
