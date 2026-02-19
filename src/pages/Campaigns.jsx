@@ -105,12 +105,64 @@ const DUMMY_CAMPAIGNS = [
     },
 ];
 
+function CampaignCard({ campaign, onClick }) {
+    return (
+        <div
+            onClick={() => onClick(campaign.id)}
+            className="group bg-white border border-border rounded-lg px-5 py-4 cursor-pointer transition-all duration-150 hover:border-slate-400 hover:shadow-[0_6px_14px_rgba(0,0,0,0.16)]"
+        >
+            <div className="flex items-start justify-between mb-3 pb-2.5 border-b border-border">
+                <div className="flex-1">
+                    <h3 className="font-heading font-semibold mb-0.5 text-foreground">{campaign.name}</h3>
+                    <p className="text-sm text-muted-foreground">{campaign.platform}</p>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
+                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.status === 'Active'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200'
+                        }`}>
+                        {campaign.status}
+                    </span>
+                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.selectedTemplate === 'No Template Selected'
+                        ? 'bg-gray-50 text-gray-600 border border-gray-200'
+                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}>
+                        {campaign.selectedTemplate}
+                    </span>
+                </div>
+            </div>
+
+            <div className="space-y-2 mb-2.5">
+                {[
+                    { label: 'Total Leads', value: campaign.leads },
+                    { label: 'Today Leads', value: campaign.newLeads },
+                    { label: 'Contacted Leads', value: campaign.contactedLeads },
+                    { label: 'Converted Leads', value: campaign.convertedLeads },
+                ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{label}</span>
+                        <span className={`text-sm font-medium ${value === 0 ? 'text-slate-300' : 'text-foreground'}`}>
+                            {value === 0 ? 'N/A' : value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="pt-2.5 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+                <Calendar className="w-3 h-3" />
+                {campaign.createdAt}
+            </div>
+        </div>
+    );
+}
+
 export function Campaigns() {
     const navigate = useNavigate();
 
     // State for data
     const [metrics, setMetrics] = useState([]);
-    const [campaigns, setCampaigns] = useState([]);
+    const [activeCampaigns, setActiveCampaigns] = useState([]);
+    const [pausedCampaigns, setPausedCampaigns] = useState([]);
 
     // State for UI handling
     const [isLoading, setIsLoading] = useState(true);
@@ -121,64 +173,51 @@ export function Campaigns() {
     */
     useEffect(() => {
         const fetchData = async () => {
-            console.log('Campaigns Page: Starting data fetch...');
+            console.log('Campaigns Page: Starting data fetch (active + paused)...');
             setIsLoading(true);
             setError(null);
-            let data = [];
+
+            let active = [];
+            let paused = [];
 
             try {
-                // Try fetching from the service (real API)
-                data = await campaignsService.getCampaigns();
-                console.log('Campaigns Page: Data fetched successfully from API', data);
+                // Fetch both in parallel
+                [active, paused] = await Promise.all([
+                    campaignsService.getActiveCampaigns(),
+                    campaignsService.getPausedCampaigns(),
+                ]);
+                console.log('Campaigns Page: Active:', active.length, '| Paused:', paused.length);
             } catch (err) {
                 console.warn('Campaigns Page: API call failed. Using LOCAL DUMMY DATA fallback.', err);
                 setError('Failed to load campaigns from server. Showing cached data.');
-                // Fallback to local dummy data
-                data = DUMMY_CAMPAIGNS;
+                active = DUMMY_CAMPAIGNS.filter(c => c.status === 'Active');
+                paused = DUMMY_CAMPAIGNS.filter(c => c.status === 'Paused');
             }
 
-            // Set Campaigns Data
-            setCampaigns(data);
+            setActiveCampaigns(active);
+            setPausedCampaigns(paused);
 
-            // Calculate Metrics Dynamically based on the 'data' (whether API or Dummy)
-            const totalCampaigns = data.length;
-            const totalLeads = data.reduce((sum, item) => sum + (item.leads || 0), 0);
-            const totalContacted = data.reduce((sum, item) => sum + (item.contactedLeads || 0), 0);
-            const totalConverted = data.reduce((sum, item) => sum + (item.convertedLeads || 0), 0);
-
-            // Format numbers with commas (e.g. 2,847)
+            // Calculate metrics across all campaigns
+            const allData = [...active, ...paused];
+            const totalCampaigns = allData.length;
+            const totalLeads = allData.reduce((sum, item) => sum + (item.leads || 0), 0);
+            const totalContacted = allData.reduce((sum, item) => sum + (item.contactedLeads || 0), 0);
+            const totalConverted = allData.reduce((sum, item) => sum + (item.convertedLeads || 0), 0);
             const format = (num) => num.toLocaleString();
 
-            const calculatedMetrics = [
-                {
-                    title: 'Number of Campaigns',
-                    value: format(totalCampaigns),
-                    change: '— 0.0%', // This would need historical data to calculate real change
-                },
-                {
-                    title: 'Total Leads',
-                    value: totalLeads > 0 ? format(totalLeads) : 'N/A',
-                    change: totalLeads > 0 ? '— 12%' : '', // hardcoded for now, will need stats API
-                },
-                {
-                    title: 'WhatsApp Messages',
-                    value: totalContacted > 0 ? format(totalContacted) : 'N/A',
-                    change: totalContacted > 0 ? '— 18%' : '',
-                },
-                {
-                    title: 'Converted Leads',
-                    value: totalConverted > 0 ? format(totalConverted) : 'N/A',
-                    change: totalConverted > 0 ? '— 9%' : '',
-                },
-            ];
+            setMetrics([
+                { title: 'Number of Campaigns', value: format(totalCampaigns), change: '— 0.0%' },
+                { title: 'Total Leads', value: totalLeads > 0 ? format(totalLeads) : 'N/A', change: totalLeads > 0 ? '— 12%' : '' },
+                { title: 'WhatsApp Messages', value: totalContacted > 0 ? format(totalContacted) : 'N/A', change: totalContacted > 0 ? '— 18%' : '' },
+                { title: 'Converted Leads', value: totalConverted > 0 ? format(totalConverted) : 'N/A', change: totalConverted > 0 ? '— 9%' : '' },
+            ]);
 
-            setMetrics(calculatedMetrics);
             setIsLoading(false);
-            console.log('Campaigns Page: Metrics calculated and state updated.');
+            console.log('Campaigns Page: State updated.');
         };
 
         fetchData();
-    }, []); // Run once on mount
+    }, []);
 
     const handleCampaignClick = (campaignId) => {
         console.log(`Campaigns Page: Navigating to details for campaign ID: ${campaignId}`);
@@ -195,7 +234,7 @@ export function Campaigns() {
     }
 
     // Error State UI (Optional, currently showing content anyway because of fallback)
-    if (error && campaigns.length === 0) {
+    if (error && activeCampaigns.length === 0 && pausedCampaigns.length === 0) {
         return (
             <div className="min-h-screen bg-background p-8">
                 <div className="text-red-500">Error: {error}</div>
@@ -237,74 +276,35 @@ export function Campaigns() {
                     </div>
                 </div>
 
-                {/* Campaigns Grid Header */}
+                {/* Active Campaigns Section */}
                 <div className="mb-4 pb-3 border-b border-border">
-                    <h2 className="text-xl font-heading font-semibold">All Campaigns</h2>
+                    <h2 className="text-xl font-heading font-semibold">All Active Campaigns</h2>
                 </div>
 
-                {/* Campaigns Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {campaigns.map((campaign) => (
-                        <div
-                            key={campaign.id}
-                            onClick={() => handleCampaignClick(campaign.id)}
-                            className="group bg-white border border-border rounded-lg px-5 py-4 cursor-pointer transition-all duration-150 hover:border-slate-400 hover:shadow-[0_6px_14px_rgba(0,0,0,0.16)]"
-                        >
-                            <div className="flex items-start justify-between mb-3 pb-2.5 border-b border-border">
-                                <div className="flex-1">
-                                    <h3 className="font-heading font-semibold mb-0.5 text-foreground">{campaign.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{campaign.platform}</p>
-                                </div>
-                                <div className="flex flex-col gap-2 items-end">
-                                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.status === 'Active'
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-gray-50 text-gray-600 border border-gray-200'
-                                        }`}>
-                                        {campaign.status}
-                                    </span>
-                                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.selectedTemplate === 'No Template Selected'
-                                        ? 'bg-gray-50 text-gray-600 border border-gray-200'
-                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                        }`}>
-                                        {campaign.selectedTemplate}
-                                    </span>
-                                </div>
-                            </div>
+                {activeCampaigns.length === 0 ? (
+                    <p className="text-sm text-muted-foreground mb-8">No active campaigns found.</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-10">
+                        {activeCampaigns.map((campaign) => (
+                            <CampaignCard key={campaign.id} campaign={campaign} onClick={handleCampaignClick} />
+                        ))}
+                    </div>
+                )}
 
-                            <div className="space-y-2 mb-2.5">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Total Leads</span>
-                                    <span className={`text-sm font-medium ${campaign.leads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
-                                        {campaign.leads === 0 ? 'N/A' : campaign.leads}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Today Leads</span>
-                                    <span className={`text-sm font-medium ${campaign.newLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
-                                        {campaign.newLeads === 0 ? 'N/A' : campaign.newLeads}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Contacted Leads</span>
-                                    <span className={`text-sm font-medium ${campaign.contactedLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
-                                        {campaign.contactedLeads === 0 ? 'N/A' : campaign.contactedLeads}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Converted Leads</span>
-                                    <span className={`text-sm font-medium ${campaign.convertedLeads === 0 ? 'text-slate-300' : 'text-foreground'}`}>
-                                        {campaign.convertedLeads === 0 ? 'N/A' : campaign.convertedLeads}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="pt-2.5 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
-                                <Calendar className="w-3 h-3" />
-                                {campaign.createdAt}
-                            </div>
-                        </div>
-                    ))}
+                {/* Paused Campaigns Section */}
+                <div className="mb-4 pb-3 border-b border-border">
+                    <h2 className="text-xl font-heading font-semibold">All Paused Campaigns</h2>
                 </div>
+
+                {pausedCampaigns.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No paused campaigns found.</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {pausedCampaigns.map((campaign) => (
+                            <CampaignCard key={campaign.id} campaign={campaign} onClick={handleCampaignClick} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

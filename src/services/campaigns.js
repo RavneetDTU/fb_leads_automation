@@ -40,17 +40,46 @@ export const campaignsService = {
   async getCampaigns(sync = false) {
     try {
       console.log('[CampaignsService] Fetching campaigns from API...');
-
       const data = await api.get(`/campaigns/?sync=${sync}`);
-
-      // Transform the data to match UI expectations
       const transformedCampaigns = data.map(transformCampaignData);
-
       console.log('[CampaignsService] Successfully fetched and transformed campaigns:', transformedCampaigns);
-
       return transformedCampaigns;
     } catch (error) {
       console.error('[CampaignsService] Failed to fetch campaigns:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch active campaigns
+   * @returns {Promise<Array>}
+   */
+  async getActiveCampaigns() {
+    try {
+      console.log('[CampaignsService] Fetching active campaigns...');
+      const data = await api.get('/campaigns/active');
+      const transformed = data.map(transformCampaignData);
+      console.log('[CampaignsService] Active campaigns fetched:', transformed.length);
+      return transformed;
+    } catch (error) {
+      console.error('[CampaignsService] Failed to fetch active campaigns:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch paused campaigns
+   * @returns {Promise<Array>}
+   */
+  async getPausedCampaigns() {
+    try {
+      console.log('[CampaignsService] Fetching paused campaigns...');
+      const data = await api.get('/campaigns/paused');
+      const transformed = data.map(transformCampaignData);
+      console.log('[CampaignsService] Paused campaigns fetched:', transformed.length);
+      return transformed;
+    } catch (error) {
+      console.error('[CampaignsService] Failed to fetch paused campaigns:', error);
       throw error;
     }
   },
