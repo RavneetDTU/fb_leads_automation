@@ -147,13 +147,13 @@ export default function DailyLeads() {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-muted/30 border-b border-border">
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground w-20">Time</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Name</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Phone</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Campaign</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground">Interest</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground w-28">Status</th>
-                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground w-24">Action</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-24">Time</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-40">Name</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-36">Phone</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-56">Campaign</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-32">Branch</th>
+                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-28">Status</th>
+                                    <th className="text-center px-3 py-3 text-sm font-medium text-foreground w-32">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -163,48 +163,48 @@ export default function DailyLeads() {
                                         className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20"
                                     >
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.time}
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer"
+                                            className="px-3 py-2.5 text-sm font-medium text-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.name}
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.phone}
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.campaign}
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            {lead.interest}
+                                            <span className="text-slate-300">sinarest western</span>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 cursor-pointer"
+                                            className="px-3 py-2.5 cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${statusColors[lead.status]}`}>
                                                 {lead.status}
                                             </span>
                                         </td>
-                                        <td className="px-2 py-2.5 text-center">
+                                        <td className="px-6 py-2.5 text-center">
                                             <button
                                                 onClick={(e) => handleSendMessage(e, lead)}
                                                 disabled={sendingLeadId === lead.id}
-                                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer ${sentLeadIds.has(lead.id)
+                                                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer ${sentLeadIds.has(lead.id)
                                                         ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                                                         : sendingLeadId === lead.id
                                                             ? 'bg-blue-300 text-white cursor-not-allowed'
