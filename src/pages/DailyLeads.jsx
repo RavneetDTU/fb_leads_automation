@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
 import { LeadModal } from '../components/LeadModal'; // Verified named export
 import { leadsService } from '../services/leads';
+import { sendTemplateMessage } from '../services/whatsapp';
 
 const statusColors = {
     New: 'bg-blue-50 text-blue-700 border border-blue-200',
@@ -19,6 +20,42 @@ export default function DailyLeads() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [sendWithAI, setSendWithAI] = useState(false);
+    // Tracks which lead row is currently sending (by lead id). null = none in flight.
+    const [sendingLeadId, setSendingLeadId] = useState(null);
+    // Tracks which lead ids were successfully sent (for green tick feedback)
+    const [sentLeadIds, setSentLeadIds] = useState(new Set());
+
+    const handleSendMessage = async (e, lead) => {
+        e.stopPropagation(); // don't open LeadModal
+
+        if (sendingLeadId === lead.id) return; // already in-flight for this row
+
+        console.log('[DailyLeads] handleSendMessage triggered');
+        console.log('[DailyLeads] Lead details → id:', lead.id, '| name:', lead.name, '| phone:', lead.phone, '| campaignId:', lead.campaignId, '| campaign:', lead.campaign);
+
+        if (!lead.campaignId) {
+            console.warn('[DailyLeads] No campaignId on lead — cannot send template:', lead);
+            alert(`Cannot send: no campaign ID found for lead "${lead.name}"`);
+            return;
+        }
+        if (!lead.phone) {
+            console.warn('[DailyLeads] No phone on lead — cannot send template:', lead);
+            alert(`Cannot send: no phone number found for lead "${lead.name}"`);
+            return;
+        }
+
+        setSendingLeadId(lead.id);
+        try {
+            await sendTemplateMessage(lead.campaignId, lead.phone);
+            setSentLeadIds(prev => new Set(prev).add(lead.id));
+            console.log('[DailyLeads] Template sent successfully for lead:', lead.name);
+        } catch (err) {
+            console.error('[DailyLeads] sendTemplateMessage error:', err.message);
+            alert(`Failed to send message to ${lead.name}: ${err.message}`);
+        } finally {
+            setSendingLeadId(null);
+        }
+    };
 
     // Fetch leads when date changes
     useEffect(() => {
@@ -165,14 +202,21 @@ export default function DailyLeads() {
                                         </td>
                                         <td className="px-2 py-2.5 text-center">
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    console.log('Send message to:', lead.name);
-                                                    // API call will go here later
-                                                }}
-                                                className="px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors shadow-sm cursor-pointer"
+                                                onClick={(e) => handleSendMessage(e, lead)}
+                                                disabled={sendingLeadId === lead.id}
+                                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer ${sentLeadIds.has(lead.id)
+                                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                                        : sendingLeadId === lead.id
+                                                            ? 'bg-blue-300 text-white cursor-not-allowed'
+                                                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                    }`}
                                             >
-                                                Send Message
+                                                {sendingLeadId === lead.id
+                                                    ? 'Sending...'
+                                                    : sentLeadIds.has(lead.id)
+                                                        ? '✓ Sent'
+                                                        : 'Send Message'
+                                                }
                                             </button>
                                         </td>
                                     </tr>
