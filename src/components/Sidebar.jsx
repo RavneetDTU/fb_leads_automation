@@ -36,6 +36,7 @@ function Sidebar() {
     { path: '/promoted-leads', label: 'Promoted Leads', icon: TrendingUp },
     { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
     { path: '/settings', label: 'Settings', icon: Settings },
+    { path: '/book-calendar-event', label: 'Book Calendar Event', icon: Calendar },
   ];
 
   const calendarItems = [
