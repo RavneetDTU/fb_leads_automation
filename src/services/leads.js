@@ -12,6 +12,11 @@ function transformLeadData(apiLead) {
         campaign: apiLead.campaign_name || 'N/A',
         campaignId: apiLead.campaign_id,
         interest: apiLead.email || 'N/A', // Using email as interest since interest field isn't provided
+        province: apiLead.province || 'N/A',
+        preferred_practice: apiLead.preferred_practice || apiLead.practice_to_attend || apiLead.practice_to_visit || apiLead.practice_location || 'N/A',
+        // practice_to_visit: apiLead.practice_to_visit || 'N/A',
+        // practice_location: apiLead.practice_location || 'N/A',
+        // practice_to_attend: apiLead.practice_to_attend || 'N/A',
         status: capitalizeStatus(apiLead.status), // 'new' -> 'New', 'contacted' -> 'Contacted'
         time: extractTime(apiLead.created_at),
         date: extractDate(apiLead.created_at),

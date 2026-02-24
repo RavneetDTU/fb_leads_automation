@@ -65,6 +65,7 @@ export default function DailyLeads() {
             try {
                 const data = await leadsService.getDailyLeads(selectedDate);
                 setLeads(data);
+                console.log("Daily leads:", data);
             } catch (error) {
                 console.error("Failed to load daily leads:", error);
                 setError(error.message || 'Failed to load leads');
@@ -151,7 +152,7 @@ export default function DailyLeads() {
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-40">Name</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-36">Phone</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-56">Campaign</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-32">Branch</th>
+                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground w-32">Branch</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-28">Status</th>
                                     <th className="text-center px-3 py-3 text-sm font-medium text-foreground w-32">Action</th>
                                 </tr>
@@ -190,9 +191,9 @@ export default function DailyLeads() {
                                             className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            <span className="text-slate-300">sinarest western</span>
+                                            {lead.province} / {lead.preferred_practice}
                                         </td>
-                                        <td
+                                        <td 
                                             className="px-3 py-2.5 cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
