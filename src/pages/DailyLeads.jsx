@@ -152,7 +152,7 @@ export default function DailyLeads() {
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-40">Name</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-36">Phone</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-56">Campaign</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground w-32">Branch</th>
+                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground w-32">Province/Branch</th>
                                     <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-28">Status</th>
                                     <th className="text-center px-3 py-3 text-sm font-medium text-foreground w-32">Action</th>
                                 </tr>
