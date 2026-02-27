@@ -132,6 +132,10 @@
   );
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Landing page custom colors */
+  --color-snow: #f9fafb;
+  --color-graphite: #1e293b;
+  --color-carmine: #dc2626;
 }
 
 @layer base {
