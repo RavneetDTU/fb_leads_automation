@@ -8,8 +8,8 @@ function Navigation() {
     }
 
     return (
-        <nav className="border-b border-border bg-background">
-            <div className="container mx-auto px-6 py-4">
+        <nav className="fixed top-0 left-0 w-full z-50 border-b border-border bg-background">
+            <div className="container mx-auto px-6 py-3">
                 <div className="flex items-center justify-between">
                     <Link to="/" className="text-xl font-heading font-semibold">
                         JarvisCalling.ai

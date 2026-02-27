@@ -7,6 +7,9 @@ import { DashboardLayout } from './layouts/DashboardLayout'
 // Pages
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import LandingPageRoute from './pages/LandingPage'
+import PrivacyPolicy from './components/landingpage/privacy-policy'
+import TermsOfService from './components/landingpage/terms-of-service'
 import { Campaigns } from './pages/Campaigns'
 import { Leads } from './pages/Leads'
 import { Settings } from './pages/Setting' // Check if Setting.jsx exports 'Settings' named or default. It exported named 'Settings'.
@@ -22,9 +25,12 @@ function App() {
       <Routes>
         {/* Public Routes (Login/Signup) */}
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<LandingPageRoute />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          {/* <Route path="/landing" element={<LandingPageRoute />} /> */}
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
         </Route>
 
         {/* Protected Dashboard Routes (Sidebar Layout) */}
