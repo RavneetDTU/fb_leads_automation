@@ -157,7 +157,14 @@ function WhatsAppAutomation() {
             const fresh = data.find(d => d.phone === c.phone);
             return fresh ? { ...c, ...fresh } : c;
           });
-          return [...brandNew, ...updated];
+          // Sort by last_message_time so most-recent contact is always on top
+          const merged = [...brandNew, ...updated];
+          merged.sort((a, b) => {
+            const tA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+            const tB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+            return tB - tA;
+          });
+          return merged;
         });
       }
     } catch (err) {
@@ -170,12 +177,12 @@ function WhatsAppAutomation() {
     loadContactsPage();
   }, [loadContactsPage]);
 
-  // ── Auto-poll page 1 every 5th s (background refresh) ──────────────────
+  // ── Auto-poll page 1 every 10s (background refresh) ───────────────────
   useEffect(() => {
     const id = setInterval(() => {
-      console.log('[Whatsapp] Auto-polling contacts (5 s interval)...');
+      console.log('[Whatsapp] Auto-polling contacts (10s interval)...');
       refreshContacts();
-    }, 5_000);
+    }, 10_000);
     return () => clearInterval(id);
   }, [refreshContacts]);
 
@@ -255,10 +262,15 @@ function WhatsAppAutomation() {
 
     try {
       await sendMessage(selectedContact.phone, text);
-      console.log('[Whatsapp] sendMessage success — bubble confirmed');
-      // The next auto-poll (15 s) will replace the optimistic msg with the real one from server.
-      // Optionally force an immediate refresh:
-      fetchMessages(selectedContact, true);
+      console.log('[Whatsapp] sendMessage success — waiting 1.5s for backend to index...');
+
+      // Delay force-refresh: give backend time to index the new message.
+      // The optimistic bubble stays visible during this wait.
+      setTimeout(() => {
+        console.log('[Whatsapp] Force-refreshing messages + contacts after send');
+        fetchMessages(selectedContact, true);  // refresh chat — replaces optimistic with real
+        refreshContacts();                     // refresh sidebar — updates last_msg + reorders
+      }, 1500);
     } catch (err) {
       console.error('[Whatsapp] sendMessage failed:', err.message);
       // Remove the optimistic bubble and restore the input text
@@ -366,11 +378,11 @@ function WhatsAppAutomation() {
                     <p className="text-[#667781] text-xs truncate">
                       {isInbound ? '' : '✓ '}{contact.last_message_text || ''}
                     </p>
-                    {contact.unread_count > 0 && (
+                    {/* {contact.unread_count > 0 && (
                       <span className="bg-[#25D366] text-white rounded-full flex items-center justify-center font-medium w-5 h-5 text-xs flex-shrink-0">
                         {contact.unread_count}
                       </span>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>
