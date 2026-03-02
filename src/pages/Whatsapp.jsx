@@ -4,7 +4,7 @@ import { getContacts, getMessages, sendMessage, syncChats } from '../services/wh
 import whatsappLogo from '../assets/whatsapp -logo.png';
 
 // ─── Pagination config ────────────────────────────────────────────────────────
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -170,12 +170,12 @@ function WhatsAppAutomation() {
     loadContactsPage();
   }, [loadContactsPage]);
 
-  // ── Auto-poll page 1 every 30 s (background refresh) ──────────────────
+  // ── Auto-poll page 1 every 5th s (background refresh) ──────────────────
   useEffect(() => {
     const id = setInterval(() => {
-      console.log('[Whatsapp] Auto-polling contacts (30 s interval)...');
+      console.log('[Whatsapp] Auto-polling contacts (5 s interval)...');
       refreshContacts();
-    }, 30_000);
+    }, 5_000);
     return () => clearInterval(id);
   }, [refreshContacts]);
 
@@ -199,14 +199,14 @@ function WhatsAppAutomation() {
     }
   }, []);
 
-  // ── Load messages on contact select + poll every 15 s ──────────────────
+  // ── Load messages on contact select + poll every 5 s ──────────────────
   useEffect(() => {
     if (!selectedContact) return;
     fetchMessages(selectedContact, false);
     const id = setInterval(() => {
-      console.log('[Whatsapp] Auto-polling messages (15 s interval) for:', selectedContact.phone);
+      console.log('[Whatsapp] Auto-polling messages (5 s interval) for:', selectedContact.phone);
       fetchMessages(selectedContact, true);
-    }, 15_000);
+    }, 5_000);
     return () => clearInterval(id);
   }, [selectedContact, fetchMessages]);
 
