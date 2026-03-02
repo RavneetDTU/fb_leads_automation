@@ -111,19 +111,19 @@ function CampaignCard({ campaign, onClick }) {
             onClick={() => onClick(campaign.id)}
             className="group bg-white border border-border rounded-lg px-5 py-4 cursor-pointer transition-all duration-150 hover:border-slate-400 hover:shadow-[0_6px_14px_rgba(0,0,0,0.16)]"
         >
-            <div className="flex items-start justify-between mb-3 pb-2.5 border-b border-border">
-                <div className="flex-1">
-                    <h3 className="font-heading font-semibold mb-0.5 text-foreground">{campaign.name}</h3>
+            <div className="flex items-start justify-between gap-2 mb-3 pb-2.5 border-b border-border min-w-0">
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-heading font-semibold mb-0.5 text-foreground truncate">{campaign.name}</h3>
                     <p className="text-sm text-muted-foreground">{campaign.platform}</p>
                 </div>
-                <div className="flex flex-col gap-2 items-end">
-                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.status === 'Active'
+                <div className="flex flex-col gap-2 items-end flex-shrink-0 max-w-[55%]">
+                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium whitespace-nowrap ${campaign.status === 'Active'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-gray-50 text-gray-600 border border-gray-200'
                         }`}>
                         {campaign.status}
                     </span>
-                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${campaign.selectedTemplate === 'No Template Selected'
+                    <span className={`text-xs px-2.5 py-1 rounded-md font-medium truncate max-w-full ${campaign.selectedTemplate === 'No Template Selected'
                         ? 'bg-gray-50 text-gray-600 border border-gray-200'
                         : 'bg-blue-50 text-blue-700 border border-blue-200'
                         }`}>
