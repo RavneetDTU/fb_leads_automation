@@ -78,11 +78,15 @@ export async function sendTemplateMessage(campaignId, rawPhone) {
 
 // ─────────────────────────────────────────────────────────────
 // 2. Get Contacts (for WhatsApp sidebar)
-//    GET /whatsapp/contacts
+//    GET /whatsapp/contacts?page=1&page_size=50
 //    Returns array of contact objects.
+//    - page=1  → latest contacts
+//    - page=2+ → next batch (for infinite scroll)
+//    - Returns [] when there are no more contacts.
 // ─────────────────────────────────────────────────────────────
-export async function getContacts() {
-    const url = `${BASE_URL}/whatsapp/contacts`;
+export async function getContacts(page = 1, pageSize = 50) {
+    const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    const url = `${BASE_URL}/whatsapp/contacts?${params.toString()}`;
     console.log('[whatsappService] getContacts → GET', url);
 
     const response = await fetch(url, {
@@ -97,8 +101,8 @@ export async function getContacts() {
     }
 
     const data = await response.json();
-    console.log('[whatsappService] getContacts success — total contacts:', data.length);
-    return data;
+    console.log(`[whatsappService] getContacts success — page:${page} | received:${data.length}`);
+    return data; // empty array signals end of pagination
 }
 
 // ─────────────────────────────────────────────────────────────

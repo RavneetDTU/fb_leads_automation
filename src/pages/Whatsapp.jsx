@@ -3,6 +3,9 @@ import { Search, ChevronDown, Send, Loader2, RefreshCw } from 'lucide-react';
 import { getContacts, getMessages, sendMessage, syncChats } from '../services/whatsapp';
 import whatsappLogo from '../assets/whatsapp -logo.png';
 
+// ─── Pagination config ────────────────────────────────────────────────────────
+const PAGE_SIZE = 50;
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Format ISO timestamp → human-readable time or date */
@@ -67,8 +70,14 @@ function MessageText({ text }) {
 
 function WhatsAppAutomation() {
   const [contacts, setContacts] = useState([]);
-  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactsLoading, setContactsLoading] = useState(true);   // initial load only
   const [contactsError, setContactsError] = useState(null);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);     // bottom-of-list spinner
+
+  // ── Pagination refs (refs avoid stale-closure bugs in callbacks) ───────
+  const currentPageRef = useRef(1);   // next page to load
+  const hasMoreRef = useRef(true);    // false once API returns []
+  const isFetchingRef = useRef(false);// lock to prevent concurrent fetches
 
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -83,32 +92,93 @@ function WhatsAppAutomation() {
 
   const messagesEndRef = useRef(null);
 
-  // ── Contacts fetch (also used by auto-poll) ────────────────────────────
-  const fetchContacts = useCallback(async (silent = false) => {
-    if (!silent) setContactsLoading(true);
+  const [switchWithAI, setSwitchWithAI] = useState(false);
+
+  // ── Load next page of contacts and APPEND to list ─────────────────────
+  const loadContactsPage = useCallback(async () => {
+    // Guard: don't fetch if already fetching or no more pages
+    if (isFetchingRef.current || !hasMoreRef.current) return;
+
+    const page = currentPageRef.current;
+    const isFirstPage = page === 1;
+
+    isFetchingRef.current = true;
+    if (isFirstPage) setContactsLoading(true);
+    else setIsFetchingMore(true);
     setContactsError(null);
+
     try {
-      console.log('[Whatsapp] Fetching contacts...');
-      const data = await getContacts();
-      console.log('[Whatsapp] Contacts loaded:', data.length, 'contacts');
-      setContacts(data);
+      console.log(`[Whatsapp] Loading contacts page:${page} page_size:${PAGE_SIZE}`);
+      const data = await getContacts(page, PAGE_SIZE);
+      console.log(`[Whatsapp] Page ${page} returned ${data.length} contacts`);
+
+      if (data.length === 0) {
+        // API returned empty — no more pages
+        hasMoreRef.current = false;
+        console.log('[Whatsapp] No more contacts — infinite scroll disabled');
+      } else {
+        // Append new contacts; avoid duplicates by phone
+        setContacts(prev => {
+          const existingPhones = new Set(prev.map(c => c.phone));
+          const fresh = data.filter(c => !existingPhones.has(c.phone));
+          return [...prev, ...fresh];
+        });
+        currentPageRef.current = page + 1;
+
+        // If fewer items than page_size, this was the last page
+        if (data.length < PAGE_SIZE) {
+          hasMoreRef.current = false;
+          console.log('[Whatsapp] Last page received — infinite scroll disabled');
+        }
+      }
     } catch (err) {
-      console.error('[Whatsapp] Failed to load contacts:', err.message);
+      console.error('[Whatsapp] Failed to load contacts page:', err.message);
       setContactsError(err.message);
     } finally {
-      if (!silent) setContactsLoading(false);
+      isFetchingRef.current = false;
+      if (isFirstPage) setContactsLoading(false);
+      else setIsFetchingMore(false);
     }
   }, []);
 
-  // ── Load contacts on mount + poll every 30 s ────────────────────────────
+  // ── Silent background refresh for page 1 (keeps unread counts fresh) ──
+  const refreshContacts = useCallback(async () => {
+    // Don't interfere when user-triggered pagination is in-flight
+    if (isFetchingRef.current) return;
+    try {
+      console.log('[Whatsapp] Auto-poll: refreshing page 1 contacts silently...');
+      const data = await getContacts(1, PAGE_SIZE);
+      if (data.length > 0) {
+        // Merge: update existing contacts (e.g. unread count) + prepend truly new ones
+        setContacts(prev => {
+          const existingPhones = new Set(prev.map(c => c.phone));
+          const brandNew = data.filter(c => !existingPhones.has(c.phone));
+          const updated = prev.map(c => {
+            const fresh = data.find(d => d.phone === c.phone);
+            return fresh ? { ...c, ...fresh } : c;
+          });
+          return [...brandNew, ...updated];
+        });
+      }
+    } catch (err) {
+      console.warn('[Whatsapp] Silent poll failed:', err.message);
+    }
+  }, []);
+
+  // ── Initial load on mount ──────────────────────────────────────────────
   useEffect(() => {
-    fetchContacts(false);
+    loadContactsPage();
+  }, [loadContactsPage]);
+
+  // ── Auto-poll page 1 every 30 s (background refresh) ──────────────────
+  useEffect(() => {
     const id = setInterval(() => {
       console.log('[Whatsapp] Auto-polling contacts (30 s interval)...');
-      fetchContacts(true);
+      refreshContacts();
     }, 30_000);
     return () => clearInterval(id);
-  }, [fetchContacts]);
+  }, [refreshContacts]);
+
 
   // ── Messages fetch (also used by auto-poll) ────────────────────────────
   const fetchMessages = useCallback(async (contact, silent = false) => {
@@ -242,7 +312,7 @@ function WhatsAppAutomation() {
         {/* Contact list body */}
         <div className="flex-1 overflow-y-auto bg-white">
 
-          {/* Loading state */}
+          {/* Initial loading state (first page only) */}
           {contactsLoading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-6 h-6 text-[#25D366] animate-spin" />
@@ -306,6 +376,26 @@ function WhatsAppAutomation() {
               </div>
             );
           })}
+
+          {/* ── Load More button (shown only when more pages exist) ─────── */}
+          {!contactsLoading && !contactsError && hasMoreRef.current && (
+            <div className="px-4 py-3 border-t border-[#F0F2F5]">
+              <button
+                onClick={loadContactsPage}
+                disabled={isFetchingMore}
+                className="w-full py-2 rounded-lg text-sm font-medium transition-colors border border-[#E9EDEF] text-[#3B4A54] bg-white hover:bg-[#F0F2F5] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isFetchingMore ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-[#25D366] animate-spin" />
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <span>Load more contacts</span>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -329,6 +419,21 @@ function WhatsAppAutomation() {
 
             {/* Chat Header Actions */}
             <div className="flex items-center gap-2">
+
+              {/* AI Toggle */}
+              <div className="flex items-center gap-2 pb-1">
+                <span className="text-sm text-muted-foreground font-medium">Switch AI</span>
+                <button
+                  onClick={() => setSwitchWithAI(!switchWithAI)}
+                  className={`relative inline-flex h-6 w-11 items-center cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-offset-2 ${switchWithAI ? 'bg-blue-500' : 'bg-slate-300'
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${switchWithAI ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+              </div>
 
               {/* Sync Old Chat */}
               <button
