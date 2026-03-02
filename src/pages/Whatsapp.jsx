@@ -91,6 +91,7 @@ function WhatsAppAutomation() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const sendInFlightRef = useRef(false); // blocks silent polls while send is processing
 
   const [switchWithAI, setSwitchWithAI] = useState(false);
 
@@ -182,7 +183,7 @@ function WhatsAppAutomation() {
     const id = setInterval(() => {
       console.log('[Whatsapp] Auto-polling contacts (10s interval)...');
       refreshContacts();
-    }, 10_000);
+    }, 5_000);
     return () => clearInterval(id);
   }, [refreshContacts]);
 
@@ -190,12 +191,23 @@ function WhatsAppAutomation() {
   // ── Messages fetch (also used by auto-poll) ────────────────────────────
   const fetchMessages = useCallback(async (contact, silent = false) => {
     if (!contact) return;
+
+    // CRITICAL: Skip ALL silent (poll) fetches while a send is in-flight.
+    // This guarantees the optimistic bubble is never wiped by a poll.
+    if (silent && sendInFlightRef.current) {
+      console.log('[Whatsapp] ⛔ Skipping silent fetch — send in-flight, optimistic bubble protected');
+      return;
+    }
+
     if (!silent) { setMessagesLoading(true); setMessagesError(null); setMessages([]); }
     try {
       console.log('[Whatsapp] Fetching messages for phone:', contact.phone, silent ? '(poll)' : '(initial)');
       const data = await getMessages(contact.phone);
       console.log('[Whatsapp] Messages loaded:', data.length, 'for', contact.phone);
-      const filtered = data.filter(m => m.message_type === 'text' || (m.message_type === 'template' && m.message_text));
+      // Filter: must have non-empty text, exclude "session" dupes (backend creates session + text per outbound msg)
+      const filtered = data.filter(m =>
+        m.message_text && m.message_text.trim() !== '' && m.message_type !== 'session'
+      );
       console.log('[Whatsapp] After filter:', filtered.length);
       setMessages(filtered);
     } catch (err) {
@@ -246,6 +258,9 @@ function WhatsAppAutomation() {
 
     console.log('[Whatsapp] handleSendMessage → phone:', selectedContact.phone, '| message:', text);
 
+    // 🔒 LOCK: Block all silent polls so optimistic bubble can never be wiped
+    sendInFlightRef.current = true;
+
     // Optimistic UI: add bubble immediately so it feels instant
     const optimisticMsg = {
       message_id: `optimistic-${Date.now()}`,
@@ -262,18 +277,20 @@ function WhatsAppAutomation() {
 
     try {
       await sendMessage(selectedContact.phone, text);
-      console.log('[Whatsapp] sendMessage success — waiting 1.5s for backend to index...');
+      console.log('[Whatsapp] sendMessage success — lock held for 3s while backend indexes...');
 
-      // Delay force-refresh: give backend time to index the new message.
-      // The optimistic bubble stays visible during this wait.
+      // Hold the lock for 3s to let the backend fully index the message.
+      // During this time ALL silent polls are blocked → optimistic bubble stays.
+      // After 3s: unlock + force-refresh to swap optimistic with real server data.
       setTimeout(() => {
-        console.log('[Whatsapp] Force-refreshing messages + contacts after send');
-        fetchMessages(selectedContact, true);  // refresh chat — replaces optimistic with real
-        refreshContacts();                     // refresh sidebar — updates last_msg + reorders
-      }, 1500);
+        sendInFlightRef.current = false;  // 🔓 UNLOCK
+        console.log('[Whatsapp] 🔓 Send lock released — force-refreshing messages + contacts');
+        fetchMessages(selectedContact, true);
+        refreshContacts();
+      }, 3000);
     } catch (err) {
+      sendInFlightRef.current = false;  // 🔓 UNLOCK on error too
       console.error('[Whatsapp] sendMessage failed:', err.message);
-      // Remove the optimistic bubble and restore the input text
       setMessages(prev => prev.filter(m => m.message_id !== optimisticMsg.message_id));
       setMessage(text);
       alert(`Failed to send message: ${err.message}`);
