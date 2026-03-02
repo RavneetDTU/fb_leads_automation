@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
-import { LeadModal } from '../components/LeadModal'; // Verified named export
+import { LeadModal } from '../components/LeadModal';
+import { DemoLeadModal } from '../components/DemoLeadModal';
 import { leadsService } from '../services/leads';
 import { sendTemplateMessage } from '../services/whatsapp';
 
@@ -24,6 +25,18 @@ export default function DailyLeads() {
     const [sendingLeadId, setSendingLeadId] = useState(null);
     // Tracks which lead ids were successfully sent (for green tick feedback)
     const [sentLeadIds, setSentLeadIds] = useState(new Set());
+    // Demo Lead modal visibility
+    const [showDemoModal, setShowDemoModal] = useState(false);
+
+    // Callback after demo lead is created — refresh the leads list
+    const handleDemoCreated = async () => {
+        try {
+            const data = await leadsService.getDailyLeads(selectedDate);
+            setLeads(data);
+        } catch (err) {
+            console.error('[DailyLeads] Failed to refresh after demo lead:', err);
+        }
+    };
 
     const handleSendMessage = async (e, lead) => {
         e.stopPropagation(); // don't open LeadModal
@@ -86,16 +99,24 @@ export default function DailyLeads() {
                     <h1 className="text-3xl tracking-tight font-heading font-semibold">Daily Leads</h1>
                 </div>
 
-                {/* Date Picker with AI Toggle */}
+                {/* Date Picker + Demo Lead button + AI Toggle */}
                 <div className="mb-5 flex items-end justify-between">
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Select Date</label>
-                        <Input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="max-w-xs bg-white border-border focus:ring-1 focus:ring-primary"
-                        />
+                    <div className="flex items-end gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-foreground mb-2">Select Date</label>
+                            <Input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="max-w-xs bg-white border-border focus:ring-1 focus:ring-primary"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setShowDemoModal(true)}
+                            className="px-6 py-2 text-sm font-medium rounded-lg bg-foreground text-white hover:bg-muted/30 hover:text-foreground transition-colors shadow-sm cursor-pointer"
+                        >
+                            Demo Lead
+                        </button>
                     </div>
 
                     {/* AI Toggle */}
@@ -193,7 +214,7 @@ export default function DailyLeads() {
                                         >
                                             {lead.province} / {lead.preferred_practice}
                                         </td>
-                                        <td 
+                                        <td
                                             className="px-3 py-2.5 cursor-pointer"
                                             onClick={() => setSelectedLead(lead)}
                                         >
@@ -206,10 +227,10 @@ export default function DailyLeads() {
                                                 onClick={(e) => handleSendMessage(e, lead)}
                                                 disabled={sendingLeadId === lead.id}
                                                 className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer ${sentLeadIds.has(lead.id)
-                                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                                        : sendingLeadId === lead.id
-                                                            ? 'bg-blue-300 text-white cursor-not-allowed'
-                                                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                                    : sendingLeadId === lead.id
+                                                        ? 'bg-blue-300 text-white cursor-not-allowed'
+                                                        : 'bg-blue-500 text-white hover:bg-blue-600'
                                                     }`}
                                             >
                                                 {sendingLeadId === lead.id
@@ -236,6 +257,14 @@ export default function DailyLeads() {
 
             {selectedLead && (
                 <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+            )}
+
+            {/* Demo Lead Modal */}
+            {showDemoModal && (
+                <DemoLeadModal
+                    onClose={() => setShowDemoModal(false)}
+                    onCreated={handleDemoCreated}
+                />
             )}
         </div>
     );

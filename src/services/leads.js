@@ -125,5 +125,23 @@ export const leadsService = {
                 totalPages: Math.ceil(filteredLeads.length / 10)
             }
         };
+    },
+
+    /**
+     * Create a demo lead
+     * POST /leads/demo
+     * @param {Object} demoLead - Demo lead data
+     * @returns {Promise<Object>}
+     */
+    async createDemoLead(demoLead) {
+        try {
+            console.log('[LeadsService] Creating demo lead:', demoLead);
+            const data = await api.post('/leads/demo', demoLead);
+            console.log('[LeadsService] Demo lead created successfully:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to create demo lead:', error);
+            throw error;
+        }
     }
 };
