@@ -499,7 +499,7 @@ function WhatsAppAutomation() {
               backgroundRepeat: 'repeat',
               backgroundBlendMode: 'overlay',
             }}
-          > 
+          >
 
             <div className="relative space-y-2">
 
