@@ -84,7 +84,7 @@ export async function sendTemplateMessage(campaignId, rawPhone) {
 //    - page=2+ → next batch (for infinite scroll)
 //    - Returns [] when there are no more contacts.
 // ─────────────────────────────────────────────────────────────
-export async function getContacts(page = 1, pageSize = 50) {
+export async function getContacts(page = 1, pageSize = 20) {
     const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
     const url = `${BASE_URL}/whatsapp/contacts?${params.toString()}`;
     console.log('[whatsappService] getContacts → GET', url);
