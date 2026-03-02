@@ -490,17 +490,16 @@ function WhatsAppAutomation() {
             </div> {/* end flex actions */}
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 relative" style={{ backgroundColor: '#EFEAE2' }}>
-            {/* WhatsApp background pattern */}
-            <div
-              className="absolute inset-0"
-              style={{
-                opacity: 0.4,
-                backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
-                backgroundRepeat: 'repeat',
-              }}
-            />
+          {/* Messages Area — background applied directly to scrollable container */}
+          <div
+            className="flex-1 overflow-y-auto p-4 relative"
+            style={{
+              backgroundColor: '#EFEAE2',
+              backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
+              backgroundRepeat: 'repeat',
+              backgroundBlendMode: 'overlay',
+            }}
+          >
 
             <div className="relative space-y-2">
 
