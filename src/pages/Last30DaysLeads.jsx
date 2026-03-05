@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LeadModal } from '../components/LeadModal';
 import { leadsService } from '../services/leads';
 import { sendTemplateMessage } from '../services/whatsapp';
@@ -16,9 +16,22 @@ export default function Last30DaysLeads() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterCampaign, setFilterCampaign] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
     // Send message state
     const [sendingLeadId, setSendingLeadId] = useState(null);
     const [sentLeadIds, setSentLeadIds] = useState(new Set());
+
+    // Derive unique campaign names and statuses from loaded leads
+    const uniqueCampaigns = useMemo(() => {
+        const campaigns = [...new Set(leads.map(l => l.campaign).filter(Boolean))];
+        return campaigns.sort();
+    }, [leads]);
+
+    const uniqueStatuses = useMemo(() => {
+        const statuses = [...new Set(leads.map(l => l.status).filter(Boolean))];
+        return statuses.sort();
+    }, [leads]);
 
     const handleSendMessage = async (e, lead) => {
         e.stopPropagation();
@@ -70,12 +83,18 @@ export default function Last30DaysLeads() {
         return () => clearInterval(interval);
     }, []);
 
-    // Filter leads by search
-    const displayLeads = leads.filter(lead =>
-        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.phone.includes(searchTerm) ||
-        (lead.campaign || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter leads by search + campaign + status (AND logic)
+    const displayLeads = leads.filter(lead => {
+        const matchesSearch = !searchTerm ||
+            lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lead.phone.includes(searchTerm) ||
+            (lead.campaign || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesCampaign = !filterCampaign || lead.campaign === filterCampaign;
+        const matchesStatus = !filterStatus || lead.status === filterStatus;
+
+        return matchesSearch && matchesCampaign && matchesStatus;
+    });
 
     return (
         <div className="min-h-screen bg-background">
@@ -107,17 +126,48 @@ export default function Last30DaysLeads() {
                     </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="mb-5">
-                    <div className="relative max-w-md">
+                {/* Search + Filters Row */}
+                <div className="mb-5 flex flex-wrap items-center gap-3">
+                    <div className="relative w-56">
                         <input
                             type="search"
                             placeholder="Search leads..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full h-9 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] pl-3"
+                            className="w-full h-9 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
                         />
                     </div>
+
+                    <select
+                        value={filterCampaign}
+                        onChange={(e) => setFilterCampaign(e.target.value)}
+                        className="h-9 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none cursor-pointer focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] min-w-[180px]"
+                    >
+                        <option value="">Filter by Campaigns</option>
+                        {uniqueCampaigns.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="h-9 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none cursor-pointer focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] min-w-[180px]"
+                    >
+                        <option value="">Filter by Statuses</option>
+                        {uniqueStatuses.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+
+                    {(filterCampaign || filterStatus) && (
+                        <button
+                            onClick={() => { setFilterCampaign(''); setFilterStatus(''); }}
+                            className="h-9 px-3 rounded-md border border-border bg-white text-sm text-muted-foreground hover:text-foreground hover:border-slate-400 transition-colors cursor-pointer"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
                 </div>
 
                 {/* Leads Table */}
@@ -135,18 +185,18 @@ export default function Last30DaysLeads() {
                         </div>
                     )}
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    <div>
+                        <table className="w-full table-fixed">
                             <thead>
                                 <tr className="bg-muted/30 border-b border-border">
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-32">Date</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-24">Time</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-32">Name</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-32">Phone</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-56">Campaign</th>
-                                    <th className="text-left px-5 py-3 text-sm font-medium text-foreground w-32">Province/Branch</th>
-                                    <th className="text-left px-3 py-3 text-sm font-medium text-foreground w-28">Status</th>
-                                    <th className="text-center px-3 py-3 text-sm font-medium text-foreground w-32">Action</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Date</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '7%' }}>Time</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '13%' }}>Name</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Phone</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '22%' }}>Campaign</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '14%' }}>Province/Branch</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '9%' }}>Status</th>
+                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground" style={{ width: '13%' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -156,54 +206,57 @@ export default function Last30DaysLeads() {
                                         className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20"
                                     >
                                         <td
-                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.date}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.time}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 text-sm font-medium text-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer truncate"
                                             onClick={() => setSelectedLead(lead)}
+                                            title={lead.name}
                                         >
                                             {lead.name}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
                                             onClick={() => setSelectedLead(lead)}
                                         >
                                             {lead.phone}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer truncate"
                                             onClick={() => setSelectedLead(lead)}
+                                            title={lead.campaign}
                                         >
                                             {lead.campaign}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 text-sm text-muted-foreground cursor-pointer"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer truncate"
                                             onClick={() => setSelectedLead(lead)}
+                                            title={`${lead.province} / ${lead.preferred_practice}`}
                                         >
                                             {lead.province} / {lead.preferred_practice}
                                         </td>
                                         <td
-                                            className="px-3 py-2.5 cursor-pointer"
+                                            className="px-2 py-2.5 cursor-pointer whitespace-nowrap"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${statusColors[lead.status]}`}>
+                                            <span className={`text-xs px-2 py-1 rounded-md font-medium ${statusColors[lead.status]}`}>
                                                 {lead.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-2.5 text-center">
+                                        <td className="px-2 py-2.5 text-center">
                                             <button
                                                 onClick={(e) => handleSendMessage(e, lead)}
                                                 disabled={sendingLeadId === lead.id}
-                                                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer ${sentLeadIds.has(lead.id)
+                                                className={`px-6 py-2.5 text-xs font-medium rounded-md transition-colors shadow-sm cursor-pointer whitespace-nowrap ${sentLeadIds.has(lead.id)
                                                     ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                                                     : sendingLeadId === lead.id
                                                         ? 'bg-blue-300 text-white cursor-not-allowed'
@@ -214,7 +267,7 @@ export default function Last30DaysLeads() {
                                                     ? 'Sending...'
                                                     : sentLeadIds.has(lead.id)
                                                         ? '✓ Sent'
-                                                        : 'Send Message'
+                                                        : 'Send'
                                                 }
                                             </button>
                                         </td>
