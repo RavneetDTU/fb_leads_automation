@@ -1,23 +1,33 @@
-import React, { useState } from 'react';
-import { X, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Info, Loader2 } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { leadsService } from '../services/leads';
 
 export function LeadModal({ lead, onClose }) {
   const [activeTab, setActiveTab] = useState('basic');
+
+  // ── Basic Info state ──
   const [formData, setFormData] = useState({
-    branchName: 'TODO',
-    surname: '',
-    status: 'Inactive',
-    quality: '',
-    name: lead.name,
-    email: 'ryan@example.com',
-    phone: lead.phone,
-    city: 'TODO',
+    branchName: '',
+    status: '',
+    name: '',
+    email: '',
+    phone: '',
+    city: '',
   });
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(''); // success / error feedback
+
+  // ── Notes state ──
+  const [notes, setNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
   const [isReminder, setIsReminder] = useState(false);
-  const [whatsappMessage, setWhatsappMessage] = useState('');
+
+  // ── Questions / Answers state ──
   const [questions, setQuestions] = useState({
     crowdedSituations: '',
     peopleMumble: '',
@@ -27,15 +37,14 @@ export function LeadModal({ lead, onClose }) {
     audiogram: false,
     bookAppointment: false,
   });
+  const [answersLoading, setAnswersLoading] = useState(false);
+  const [answersSaving, setAnswersSaving] = useState(false);
+  const [answersSaveMsg, setAnswersSaveMsg] = useState('');
 
-  const tabs = [
-    { id: 'basic', label: 'Basic Info' },
-    { id: 'notes', label: 'Notes' },
-    { id: 'calls', label: 'Calls' },
-    { id: 'whatsapp', label: 'Whatsapp' },
-    { id: 'questions', label: 'Questions' },
-  ];
+  // ── Whatsapp state ──
+  const [whatsappMessage, setWhatsappMessage] = useState('');
 
+  // Static data
   const callData = [
     {
       agent: '2733',
@@ -47,9 +56,154 @@ export function LeadModal({ lead, onClose }) {
     },
   ];
 
-  const handleSave = () => {
-    // Save logic here
-    onClose();
+  const tabs = [
+    { id: 'basic', label: 'Basic Info' },
+    { id: 'notes', label: 'Notes' },
+    { id: 'calls', label: 'Calls' },
+    { id: 'whatsapp', label: 'Whatsapp' },
+    { id: 'questions', label: 'Questions' },
+  ];
+
+  // ─── Fetch lead detail on mount ───
+  useEffect(() => {
+    const fetchDetail = async () => {
+      setDetailLoading(true);
+      try {
+        const data = await leadsService.getLeadDetail(lead.id);
+        setFormData({
+          branchName: data.branch_name || '',
+          status: data.status || '',
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone_number || '',
+          city: data.city || '',
+        });
+      } catch (err) {
+        console.error('Failed to load lead detail:', err);
+        // Fallback to whatever the parent passed
+        setFormData({
+          branchName: '',
+          status: '',
+          name: lead.name || '',
+          email: '',
+          phone: lead.phone || '',
+          city: '',
+        });
+      } finally {
+        setDetailLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [lead.id]);
+
+  // ─── Fetch notes on mount ───
+  useEffect(() => {
+    fetchNotes();
+  }, [lead.id]);
+
+  const fetchNotes = async () => {
+    setNotesLoading(true);
+    try {
+      const data = await leadsService.getLeadNotes(lead.id);
+      setNotes(data);
+    } catch (err) {
+      console.error('Failed to load notes:', err);
+      setNotes([]);
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  // ─── Fetch answers on mount ───
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      setAnswersLoading(true);
+      try {
+        const data = await leadsService.getLeadAnswers(lead.id);
+        setQuestions((prev) => ({
+          ...prev,
+          crowdedSituations: data.difficulty_crowded ? 'yes' : data.difficulty_crowded === false ? 'no' : '',
+          peopleMumble: data.mumble_or_muffled ? 'yes' : data.mumble_or_muffled === false ? 'no' : '',
+          watchFaces: data.watch_face ? 'yes' : data.watch_face === false ? 'no' : '',
+        }));
+      } catch (err) {
+        console.error('Failed to load answers:', err);
+      } finally {
+        setAnswersLoading(false);
+      }
+    };
+    fetchAnswers();
+  }, [lead.id]);
+
+  // ─── Save basic-info handler ───
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      await leadsService.updateLeadDetail(lead.id, {
+        branch_name: formData.branchName,
+        status: formData.status,
+        name: formData.name,
+        email: formData.email,
+        phone_number: formData.phone,
+        city: formData.city,
+      });
+      setSaveMsg('Saved successfully!');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } catch (err) {
+      console.error('Failed to save lead detail:', err);
+      setSaveMsg('Failed to save. Please try again.');
+      setTimeout(() => setSaveMsg(''), 4000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ─── Save note handler ───
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) return;
+    setNotesSaving(true);
+    try {
+      await leadsService.addLeadNote(lead.id, noteText.trim());
+      setNoteText('');
+      await fetchNotes(); // refresh list
+    } catch (err) {
+      console.error('Failed to save note:', err);
+      alert('Failed to save note. Please try again.');
+    } finally {
+      setNotesSaving(false);
+    }
+  };
+
+  // ─── Save answers handler ───
+  const handleSaveAnswers = async () => {
+    setAnswersSaving(true);
+    setAnswersSaveMsg('');
+    try {
+      await leadsService.updateLeadAnswers(lead.id, {
+        difficulty_crowded: questions.crowdedSituations === 'yes',
+        mumble_or_muffled: questions.peopleMumble === 'yes',
+        watch_face: questions.watchFaces === 'yes',
+      });
+      setAnswersSaveMsg('Answers saved!');
+      setTimeout(() => setAnswersSaveMsg(''), 3000);
+    } catch (err) {
+      console.error('Failed to save answers:', err);
+      setAnswersSaveMsg('Failed to save answers.');
+      setTimeout(() => setAnswersSaveMsg(''), 4000);
+    } finally {
+      setAnswersSaving(false);
+    }
+  };
+
+  // ─── Helper: format date for display ───
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleString();
+    } catch {
+      return iso;
+    }
   };
 
   return (
@@ -97,107 +251,89 @@ export function LeadModal({ lead, onClose }) {
 
         {/* Content - Fixed height with scroll */}
         <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
+
+          {/* ═══════ BASIC INFO TAB ═══════ */}
           {activeTab === 'basic' && (
             <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="branchName">Branch Name(TODO)</Label>
-                  <Input
-                    id="branchName"
-                    value={formData.branchName}
-                    onChange={(e) => setFormData({ ...formData, branchName: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  />
+              {detailLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading lead details…</span>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="surname">Surname</Label>
-                  <Input
-                    id="surname"
-                    value={formData.surname}
-                    onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="branchName">Branch Name</Label>
+                      <Input
+                        id="branchName"
+                        value={formData.branchName}
+                        onChange={(e) => setFormData({ ...formData, branchName: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Input
+                        id="status"
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    id="status"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="flex h-9 w-full rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  >
-                    <option value="Inactive">Inactive</option>
-                    <option value="Active">Active</option>
-                    <option value="Pending">Pending</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quality">Qualify (TO DO)</Label>
-                  <select
-                    id="quality"
-                    value={formData.quality}
-                    onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
-                    className="flex h-9 w-full rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  >
-                    <option value="">Please select</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">City (TODO)</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone *</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
+          {/* ═══════ NOTES TAB ═══════ */}
           {activeTab === 'notes' && (
             <div className="space-y-5">
               <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-3">
@@ -228,8 +364,11 @@ export function LeadModal({ lead, onClose }) {
                 </label>
                 <button
                   type="button"
-                  className="px-4 py-2 border border-border rounded-md bg-foreground text-background cursor-pointer transition-colors text-sm font-medium"
+                  onClick={handleSaveNote}
+                  disabled={notesSaving || !noteText.trim()}
+                  className="px-4 py-2 border border-border rounded-md bg-foreground text-background cursor-pointer transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {notesSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Save note
                 </button>
               </div>
@@ -239,19 +378,36 @@ export function LeadModal({ lead, onClose }) {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">User</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Status</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Message</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Created At</th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Actions</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground w-16">#</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Content</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-foreground w-48">Updated At</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                        No data available in table
-                      </td>
-                    </tr>
+                    {notesLoading ? (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading notes…
+                          </div>
+                        </td>
+                      </tr>
+                    ) : notes.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          No notes available
+                        </td>
+                      </tr>
+                    ) : (
+                      notes.map((note) => (
+                        <tr key={note.id} className="border-b border-border last:border-0">
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{note.note_number}</td>
+                          <td className="px-4 py-3 text-sm text-foreground">{note.content}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(note.updated_at)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -262,6 +418,7 @@ export function LeadModal({ lead, onClose }) {
             </div>
           )}
 
+          {/* ═══════ CALLS TAB ═══════ */}
           {activeTab === 'calls' && (
             <div className="space-y-5">
               <div className="flex items-center justify-between">
@@ -327,6 +484,7 @@ export function LeadModal({ lead, onClose }) {
             </div>
           )}
 
+          {/* ═══════ WHATSAPP TAB ═══════ */}
           {activeTab === 'whatsapp' && (
             <div className="flex flex-col h-full">
               {/* Chat History Area (Empty for now) */}
@@ -356,122 +514,167 @@ export function LeadModal({ lead, onClose }) {
             </div>
           )}
 
+          {/* ═══════ QUESTIONS TAB ═══════ */}
           {activeTab === 'questions' && (
             <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="crowdedSituations">Do you have difficulty in crowed or noisy situations?</Label>
-                <div className="flex items-center gap-2">
-                  <select
-                    id="crowdedSituations"
-                    value={questions.crowdedSituations}
-                    onChange={(e) => setQuestions({ ...questions, crowdedSituations: e.target.value })}
-                    className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  >
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                  {questions.crowdedSituations && (
-                    <span className="text-emerald-500">✓</span>
-                  )}
+              {answersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading answers…</span>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="crowdedSituations">Do you have difficulty in crowed or noisy situations?</Label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        id="crowdedSituations"
+                        value={questions.crowdedSituations}
+                        onChange={(e) => setQuestions({ ...questions, crowdedSituations: e.target.value })}
+                        className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      >
+                        <option value="">Select</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                      {questions.crowdedSituations && (
+                        <span className="text-emerald-500">✓</span>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="peopleMumble">Do you think that other people mumble or sound muffled?</Label>
-                <div className="flex items-center gap-2">
-                  <select
-                    id="peopleMumble"
-                    value={questions.peopleMumble}
-                    onChange={(e) => setQuestions({ ...questions, peopleMumble: e.target.value })}
-                    className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  >
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                  {questions.peopleMumble && (
-                    <span className="text-emerald-500">✓</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="peopleMumble">Do you think that other people mumble or sound muffled?</Label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        id="peopleMumble"
+                        value={questions.peopleMumble}
+                        onChange={(e) => setQuestions({ ...questions, peopleMumble: e.target.value })}
+                        className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      >
+                        <option value="">Select</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                      {questions.peopleMumble && (
+                        <span className="text-emerald-500">✓</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="watchFaces">Do you intently watch peoples face when they speak to you?</Label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        id="watchFaces"
+                        value={questions.watchFaces}
+                        onChange={(e) => setQuestions({ ...questions, watchFaces: e.target.value })}
+                        className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
+                      >
+                        <option value="">Select</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                      {questions.watchFaces && (
+                        <span className="text-emerald-500">✓</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="howCanWeHelp">how can we help you?</Label>
+                    <textarea
+                      id="howCanWeHelp"
+                      placeholder="Type your response here..."
+                      value={questions.howCanWeHelp}
+                      onChange={(e) => setQuestions({ ...questions, howCanWeHelp: e.target.value })}
+                      rows={5}
+                      className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={questions.benefitCheck}
+                        onChange={(e) => setQuestions({ ...questions, benefitCheck: e.target.checked })}
+                        className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
+                      />
+                      <span className="text-foreground">we can do a benefit check on your behalf?</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={questions.audiogram}
+                        onChange={(e) => setQuestions({ ...questions, audiogram: e.target.checked })}
+                        className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
+                      />
+                      <span className="text-foreground">do you have an audiogram not older than 6 months?</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={questions.bookAppointment}
+                        onChange={(e) => setQuestions({ ...questions, bookAppointment: e.target.checked })}
+                        className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
+                      />
+                      <span className="text-foreground">would you like to book an appointment for a full diagnostic?</span>
+                    </label>
+                  </div>
+
+                  {/* Save Answers feedback */}
+                  {answersSaveMsg && (
+                    <p className={`text-sm font-medium ${answersSaveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {answersSaveMsg}
+                    </p>
                   )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="watchFaces">Do you intently watch peoples face when they speak to you?</Label>
-                <div className="flex items-center gap-2">
-                  <select
-                    id="watchFaces"
-                    value={questions.watchFaces}
-                    onChange={(e) => setQuestions({ ...questions, watchFaces: e.target.value })}
-                    className="flex h-9 w-40 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]"
-                  >
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                  {questions.watchFaces && (
-                    <span className="text-emerald-500">✓</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="howCanWeHelp">how can we help you?</Label>
-                <textarea
-                  id="howCanWeHelp"
-                  placeholder="Type your response here..."
-                  value={questions.howCanWeHelp}
-                  onChange={(e) => setQuestions({ ...questions, howCanWeHelp: e.target.value })}
-                  rows={5}
-                  className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] resize-none"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={questions.benefitCheck}
-                    onChange={(e) => setQuestions({ ...questions, benefitCheck: e.target.checked })}
-                    className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
-                  />
-                  <span className="text-foreground">we can do a benefit check on your behalf?</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={questions.audiogram}
-                    onChange={(e) => setQuestions({ ...questions, audiogram: e.target.checked })}
-                    className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
-                  />
-                  <span className="text-foreground">do you have an audiogram not older than 6 months?</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={questions.bookAppointment}
-                    onChange={(e) => setQuestions({ ...questions, bookAppointment: e.target.checked })}
-                    className="w-4 h-4 rounded border-border text-foreground focus:ring-2 focus:ring-[rgba(0,0,0,0.08)]"
-                  />
-                  <span className="text-foreground">would you like to book an appointment for a full diagnostic?</span>
-                </label>
-              </div>
+                </>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {/* Footer - Only show for Basic Info and Questions */}
-        {!['notes', 'calls', 'whatsapp'].includes(activeTab) && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/10">
-            <button
-              onClick={handleSave}
-              className="px-6 py-2.5 bg-foreground cursor-pointer text-background rounded-md hover:opacity-90 transition-opacity font-medium"
-            >
-              Save Changes
-            </button>
+        {activeTab === 'basic' && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-muted/10">
+            {saveMsg && (
+              <p className={`text-sm font-medium ${saveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+                {saveMsg}
+              </p>
+            )}
+            <div className="ml-auto">
+              <button
+                onClick={handleSave}
+                disabled={saving || detailLoading}
+                className="px-6 py-2.5 bg-foreground cursor-pointer text-background rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'questions' && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-muted/10">
+            {answersSaveMsg && (
+              <p className={`text-sm font-medium ${answersSaveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+                {answersSaveMsg}
+              </p>
+            )}
+            <div className="ml-auto">
+              <button
+                onClick={handleSaveAnswers}
+                disabled={answersSaving || answersLoading}
+                className="px-6 py-2.5 bg-foreground cursor-pointer text-background rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {answersSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Changes
+              </button>
+            </div>
           </div>
         )}
       </div>

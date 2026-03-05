@@ -143,5 +143,127 @@ export const leadsService = {
             console.error('[LeadsService] Failed to create demo lead:', error);
             throw error;
         }
+    },
+
+    /**
+     * Get detail for a specific lead
+     * @param {string} leadId
+     * @returns {Promise<Object>}
+     */
+    async getLeadDetail(leadId) {
+        try {
+            console.log(`[LeadsService] Fetching detail for lead: ${leadId}`);
+            const data = await api.get(`/leads/${leadId}/detail`);
+            console.log('[LeadsService] Lead detail fetched:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to fetch lead detail:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Update detail for a specific lead
+     * @param {string} leadId
+     * @param {Object} detail - { branch_name, status, name, email, phone_number, city }
+     * @returns {Promise<Object>}
+     */
+    async updateLeadDetail(leadId, detail) {
+        try {
+            console.log(`[LeadsService] Updating detail for lead: ${leadId}`, detail);
+            const data = await api.put(`/leads/${leadId}/detail`, detail);
+            console.log('[LeadsService] Lead detail updated:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to update lead detail:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get all notes for a lead (ordered by note_number 1→10)
+     * @param {string} leadId
+     * @returns {Promise<Array>}
+     */
+    async getLeadNotes(leadId) {
+        try {
+            console.log(`[LeadsService] Fetching notes for lead: ${leadId}`);
+            const data = await api.get(`/leads/${leadId}/notes`);
+            console.log(`[LeadsService] Fetched ${data.length} notes`);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to fetch lead notes:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Add a note to a lead
+     * @param {string} leadId
+     * @param {string} content - Note content
+     * @returns {Promise<Object>}
+     */
+    async addLeadNote(leadId, content) {
+        try {
+            console.log(`[LeadsService] Adding note to lead: ${leadId}`);
+            const data = await api.post(`/leads/${leadId}/notes`, { content });
+            console.log('[LeadsService] Note added:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to add lead note:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get answers for a lead's questions
+     * @param {string} leadId
+     * @returns {Promise<Object>} - { lead_id, difficulty_crowded, mumble_or_muffled, watch_face, updated_at }
+     */
+    async getLeadAnswers(leadId) {
+        try {
+            console.log(`[LeadsService] Fetching answers for lead: ${leadId}`);
+            const data = await api.get(`/leads/${leadId}/answers`);
+            console.log('[LeadsService] Lead answers fetched:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to fetch lead answers:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Update answers for a lead's questions
+     * @param {string} leadId
+     * @param {Object} answers - { difficulty_crowded, mumble_or_muffled, watch_face }
+     * @returns {Promise<Object>}
+     */
+    /**
+     * Get leads from the last 30 days
+     * @returns {Promise<Array>}
+     */
+    async getLast30DaysLeads() {
+        try {
+            console.log('[LeadsService] Fetching last 30 days leads');
+            const data = await api.get('/leads/last-30-days');
+            const transformedLeads = data.map(transformLeadData);
+            console.log(`[LeadsService] Fetched ${transformedLeads.length} leads (last 30 days)`);
+            return transformedLeads;
+        } catch (error) {
+            console.error('[LeadsService] Failed to fetch last 30 days leads:', error);
+            throw error;
+        }
+    },
+
+    async updateLeadAnswers(leadId, answers) {
+        try {
+            console.log(`[LeadsService] Updating answers for lead: ${leadId}`, answers);
+            const data = await api.put(`/leads/${leadId}/answers`, answers);
+            console.log('[LeadsService] Lead answers updated:', data);
+            return data;
+        } catch (error) {
+            console.error('[LeadsService] Failed to update lead answers:', error);
+            throw error;
+        }
     }
 };
