@@ -14,6 +14,7 @@ import { Campaigns } from './pages/Campaigns'
 import { Leads } from './pages/Leads'
 import { Settings } from './pages/Setting' // Check if Setting.jsx exports 'Settings' named or default. It exported named 'Settings'.
 import DailyLeads from './pages/DailyLeads'
+import Last30DaysLeads from './pages/Last30DaysLeads'
 import PromotedLeads from './pages/PromotedLeads'
 import Whatsapp from './pages/Whatsapp'
 import { CalendarPage } from './pages/CalendarPage'
@@ -38,6 +39,7 @@ function App() {
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/daily-leads" element={<DailyLeads />} />
+          <Route path="/last-30-days" element={<Last30DaysLeads />} />
           <Route path="/promoted-leads" element={<PromotedLeads />} />
           <Route path="/whatsapp" element={<Whatsapp />} />
           <Route path="/calendar/:calendarId" element={<CalendarPage />} />
