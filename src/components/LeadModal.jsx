@@ -1,8 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { X, Info, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Info, Loader2, Send } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { leadsService } from '../services/leads';
+import { getMessages, sendMessage, normalisePhone } from '../services/whatsapp';
+
+// ── Branch names for dropdown ──
+const BRANCH_NAMES = [
+  'BLUFF', 'BRACKENFELL', 'CAPE TOWN', 'CASCADES', 'CENTURION',
+  'HILLCREST', 'HOWICK', 'JEFFREYS BAY', 'KLOOF', 'LA LUCIA',
+  'LANGEBAAN', 'LONGBEACH', 'MARGATE', 'MAYVILLE', 'MOFFETT',
+  'MUSGRAVE', 'NORTHGATE', 'NORWOOD', 'ONLINE', 'SCOTTBURGH',
+  'SHELLY', 'SOMERSET', 'SUMMERSTRAND', 'TOKAI', 'UMHLANGA',
+  'VREDENBURG', 'WESTVILLE', 'WINDERMERE',
+];
+
+// ── Event types for calendar booking ──
+const EVENT_TYPES = [
+  { value: 'hearing-aid-test', label: 'Hearing Aid Test', duration: 45 },
+  { value: 'wax-removal', label: 'Wax Removal Test', duration: 30 },
+];
+
+// ── Store list for calendar booking ──
+const STORE_LIST = BRANCH_NAMES.map(name => ({ value: name, label: name }));
+
+// ── WhatsApp helpers ──
+function formatMessageTime(isoString) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  if (isToday) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+}
+
+function MessageText({ text }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return (
+    <span>
+      {lines.map((line, li) => {
+        const parts = line.split(/(\*[^*]+\*)/g);
+        return (
+          <span key={li}>
+            {parts.map((part, pi) =>
+              part.startsWith('*') && part.endsWith('*')
+                ? <strong key={pi}>{part.slice(1, -1)}</strong>
+                : <span key={pi}>{part}</span>
+            )}
+            {li < lines.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 export function LeadModal({ lead, onClose }) {
   const [activeTab, setActiveTab] = useState('basic');
@@ -18,7 +70,7 @@ export function LeadModal({ lead, onClose }) {
   });
   const [detailLoading, setDetailLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState(''); // success / error feedback
+  const [saveMsg, setSaveMsg] = useState('');
 
   // ── Notes state ──
   const [notes, setNotes] = useState([]);
@@ -41,8 +93,25 @@ export function LeadModal({ lead, onClose }) {
   const [answersSaving, setAnswersSaving] = useState(false);
   const [answersSaveMsg, setAnswersSaveMsg] = useState('');
 
-  // ── Whatsapp state ──
+  // ── WhatsApp state ──
+  const [whatsappMessages, setWhatsappMessages] = useState([]);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+  const [whatsappError, setWhatsappError] = useState(null);
   const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [whatsappSending, setWhatsappSending] = useState(false);
+  const messagesEndRef = useRef(null);
+  const sendInFlightRef = useRef(false);
+
+  // ── Calendar Booking state ──
+  const [bookingData, setBookingData] = useState({
+    eventType: '',
+    eventDate: '',
+    startTime: '',
+    store: '',
+    additionalNote: '',
+  });
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const [bookingSaveMsg, setBookingSaveMsg] = useState('');
 
   // Static data
   const callData = [
@@ -62,6 +131,7 @@ export function LeadModal({ lead, onClose }) {
     { id: 'calls', label: 'Calls' },
     { id: 'whatsapp', label: 'Whatsapp' },
     { id: 'questions', label: 'Questions' },
+    { id: 'booking', label: 'Book Event' },
   ];
 
   // ─── Fetch lead detail on mount ───
@@ -80,7 +150,6 @@ export function LeadModal({ lead, onClose }) {
         });
       } catch (err) {
         console.error('Failed to load lead detail:', err);
-        // Fallback to whatever the parent passed
         setFormData({
           branchName: '',
           status: '',
@@ -135,6 +204,48 @@ export function LeadModal({ lead, onClose }) {
     fetchAnswers();
   }, [lead.id]);
 
+  // ─── WhatsApp: fetch messages (uses phone from detail API) ───
+  const fetchWhatsappMessages = useCallback(async (silent = false) => {
+    const phone = formData.phone;
+    if (!phone) return;
+
+    if (silent && sendInFlightRef.current) return;
+
+    if (!silent) {
+      setWhatsappLoading(true);
+      setWhatsappError(null);
+    }
+    try {
+      const normPhone = normalisePhone(phone);
+      const data = await getMessages(normPhone);
+      const filtered = data.filter(m =>
+        m.message_text && m.message_text.trim() !== '' && m.message_type !== 'session'
+      );
+      setWhatsappMessages(filtered);
+    } catch (err) {
+      console.error('Failed to load WhatsApp messages:', err);
+      if (!silent) setWhatsappError(err.message);
+    } finally {
+      if (!silent) setWhatsappLoading(false);
+    }
+  }, [formData.phone]);
+
+  // Load messages when WhatsApp tab is selected and phone is available
+  useEffect(() => {
+    if (activeTab === 'whatsapp' && formData.phone && !detailLoading) {
+      fetchWhatsappMessages(false);
+      const interval = setInterval(() => fetchWhatsappMessages(true), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, formData.phone, detailLoading, fetchWhatsappMessages]);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [whatsappMessages]);
+
   // ─── Save basic-info handler ───
   const handleSave = async () => {
     setSaving(true);
@@ -166,7 +277,7 @@ export function LeadModal({ lead, onClose }) {
     try {
       await leadsService.addLeadNote(lead.id, noteText.trim());
       setNoteText('');
-      await fetchNotes(); // refresh list
+      await fetchNotes();
     } catch (err) {
       console.error('Failed to save note:', err);
       alert('Failed to save note. Please try again.');
@@ -196,6 +307,91 @@ export function LeadModal({ lead, onClose }) {
     }
   };
 
+  // ─── WhatsApp: send message handler ───
+  const handleSendWhatsapp = async () => {
+    const text = whatsappMessage.trim();
+    if (!text || !formData.phone || whatsappSending) return;
+
+    const normPhone = normalisePhone(formData.phone);
+    sendInFlightRef.current = true;
+
+    // Optimistic UI
+    const optimisticMsg = {
+      message_id: `optimistic-${Date.now()}`,
+      phone: normPhone,
+      direction: 'OUT',
+      message_type: 'text',
+      message_text: text,
+      status: 'sending',
+      timestamp: new Date().toISOString(),
+    };
+    setWhatsappMessages(prev => [...prev, optimisticMsg]);
+    setWhatsappMessage('');
+    setWhatsappSending(true);
+
+    try {
+      await sendMessage(normPhone, text);
+      // Hold lock for 3s while backend indexes
+      setTimeout(() => {
+        sendInFlightRef.current = false;
+        fetchWhatsappMessages(true);
+      }, 3000);
+    } catch (err) {
+      sendInFlightRef.current = false;
+      console.error('Failed to send WhatsApp message:', err);
+      setWhatsappMessages(prev => prev.filter(m => m.message_id !== optimisticMsg.message_id));
+      setWhatsappMessage(text);
+      alert(`Failed to send message: ${err.message}`);
+    } finally {
+      setWhatsappSending(false);
+    }
+  };
+
+  // ─── Book calendar event handler ───
+  const handleBookEvent = async () => {
+    if (!bookingData.eventType || !bookingData.eventDate || !bookingData.startTime || !bookingData.store) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setBookingSaving(true);
+    setBookingSaveMsg('');
+
+    const selectedEvent = EVENT_TYPES.find(e => e.value === bookingData.eventType);
+
+    try {
+      // Calculate end time based on event duration
+      const [hours, minutes] = bookingData.startTime.split(':').map(Number);
+      const startDate = new Date(2000, 0, 1, hours, minutes);
+      const endDate = new Date(startDate.getTime() + selectedEvent.duration * 60000);
+      const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+
+      const payload = {
+        summary: selectedEvent.label,
+        description: bookingData.additionalNote || '',
+        start: { dateTime: `${bookingData.eventDate}T${bookingData.startTime}:00`, timeZone: 'auto' },
+        end: { dateTime: `${bookingData.eventDate}T${endTime}:00`, timeZone: 'auto' },
+        bookerName: formData.name,
+        bookerPhone: formData.phone,
+        bookerEmail: formData.email,
+        store: bookingData.store,
+      };
+
+      console.log('[LeadModal] Booking event:', payload);
+      // TODO: Replace with actual API call when endpoint is ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setBookingSaveMsg('Event booked successfully!');
+      setTimeout(() => setBookingSaveMsg(''), 3000);
+    } catch (err) {
+      console.error('Failed to book event:', err);
+      setBookingSaveMsg('Failed to book event.');
+      setTimeout(() => setBookingSaveMsg(''), 4000);
+    } finally {
+      setBookingSaving(false);
+    }
+  };
+
   // ─── Helper: format date for display ───
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -205,6 +401,9 @@ export function LeadModal({ lead, onClose }) {
       return iso;
     }
   };
+
+  // ─── Select class helper ───
+  const selectClass = "flex h-9 w-full rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)]";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -232,13 +431,13 @@ export function LeadModal({ lead, onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pt-[12px] flex-shrink-0 pr-[24px] pb-[0px] pl-[24px]">
-          <div className="flex gap-1 border-b border-border">
+        <div className="px-6 pt-[10px] flex-shrink-0 pr-[24px] pb-[0px] pl-[24px]">
+          <div className="flex gap-1 border-b border-border flex-wrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px cursor-pointer ${activeTab === tab.id
+                className={`px-3 py-2.5 text-sm font-medium transition-all duration-150 border-b-2 -mb-px cursor-pointer whitespace-nowrap ${activeTab === tab.id
                   ? 'border-foreground text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
                   }`}
@@ -265,12 +464,21 @@ export function LeadModal({ lead, onClose }) {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="branchName">Branch Name</Label>
-                      <Input
+                      <select
                         id="branchName"
                         value={formData.branchName}
                         onChange={(e) => setFormData({ ...formData, branchName: e.target.value })}
-                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                      />
+                        className={selectClass}
+                      >
+                        <option value="">Select Branch</option>
+                        {/* If API returned a branch not in our list, show it as an option */}
+                        {formData.branchName && !BRANCH_NAMES.includes(formData.branchName.toUpperCase()) && (
+                          <option value={formData.branchName}>{formData.branchName}</option>
+                        )}
+                        {BRANCH_NAMES.map(branch => (
+                          <option key={branch} value={branch}>{branch}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
@@ -437,7 +645,6 @@ export function LeadModal({ lead, onClose }) {
                 />
               </div>
 
-              {/* Calls Table */}
               <div className="border border-border rounded-md overflow-hidden">
                 <table className="w-full">
                   <thead>
@@ -486,29 +693,101 @@ export function LeadModal({ lead, onClose }) {
 
           {/* ═══════ WHATSAPP TAB ═══════ */}
           {activeTab === 'whatsapp' && (
-            <div className="flex flex-col h-full">
-              {/* Chat History Area (Empty for now) */}
-              <div className="flex-1 overflow-y-auto mb-4">
-                {/* Messages would go here */}
+            <div className="flex flex-col" style={{ height: 'calc(100% - 0px)' }}>
+              {/* Messages Area */}
+              <div
+                className="flex-1 overflow-y-auto p-3 rounded-lg mb-3"
+                style={{
+                  backgroundColor: '#EFEAE2',
+                  backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
+                  backgroundRepeat: 'repeat',
+                  backgroundBlendMode: 'overlay',
+                  minHeight: '300px',
+                }}
+              >
+                <div className="space-y-2">
+                  {whatsappLoading && (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="bg-white/80 rounded-full px-4 py-2 flex items-center gap-2 shadow-sm">
+                        <Loader2 className="w-4 h-4 text-[#25D366] animate-spin" />
+                        <span className="text-sm text-[#667781]">Loading messages...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!whatsappLoading && whatsappError && (
+                    <div className="bg-red-100 border border-red-200 rounded-lg p-3 mx-auto max-w-sm text-center">
+                      <p className="text-sm text-red-700">Failed to load messages</p>
+                      <p className="text-xs text-red-500 mt-1">{whatsappError}</p>
+                    </div>
+                  )}
+
+                  {!whatsappLoading && !whatsappError && whatsappMessages.length === 0 && (
+                    <div className="flex justify-center">
+                      <div className="bg-white/80 rounded-lg px-4 py-2 text-sm text-[#667781] shadow-sm">
+                        {formData.phone ? 'No messages yet' : 'No phone number available for this lead'}
+                      </div>
+                    </div>
+                  )}
+
+                  {!whatsappLoading && whatsappMessages.map((msg) => {
+                    const isOut = msg.direction === 'OUT';
+                    return (
+                      <div
+                        key={msg.message_id}
+                        className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[75%] px-2.5 py-1.5 shadow-sm ${isOut ? 'bg-[#D9FDD3] text-[#111B21]' : 'bg-white text-[#111B21]'}`}
+                          style={{
+                            borderRadius: isOut ? '8px 8px 0px 8px' : '8px 8px 8px 0px',
+                            boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+                          }}
+                        >
+                          <p className="text-sm leading-[1.45]">
+                            <MessageText text={msg.message_text} />
+                          </p>
+                          <div className="flex items-center justify-end gap-1 mt-0.5">
+                            <span className="text-[#667781] text-[11px]">
+                              {formatMessageTime(msg.timestamp)}
+                            </span>
+                            {isOut && (
+                              <svg width="15" height="11" viewBox="0 0 16 11" fill="none">
+                                <path
+                                  d="M11.071 0.5L5.5 6.071l-2.071-2.07L2 5.429 5.5 8.929 12.5 1.929 11.071 0.5zM14.5 1.929L7.5 8.929l-2 2L4 8.429l1.429-1.429 1.071 1.071L13.071 0.5 14.5 1.929z"
+                                  fill={msg.status === 'read' ? '#53BDEB' : '#8696A0'}
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
 
               {/* Message Input */}
-              <div className="flex gap-2 items-end pt-3 border-t border-border">
+              <div className="flex gap-2 items-end pt-2 border-t border-border">
                 <div className="flex-1">
-                  <textarea
+                  <input
+                    type="text"
                     placeholder="Type a message..."
                     value={whatsappMessage}
                     onChange={(e) => setWhatsappMessage(e.target.value)}
-                    rows={1}
-                    className="w-full rounded-full border border-border bg-white px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] resize-none overflow-hidden min-h-[40px]"
-                    style={{ height: '42px' }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSendWhatsapp(); }}
+                    disabled={whatsappSending || !formData.phone}
+                    className="w-full rounded-full border border-border bg-white px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] h-[42px]"
                   />
                 </div>
                 <button
                   type="button"
-                  className="px-4 py-2 bg-foreground text-background cursor-pointer rounded-full hover:opacity-90 transition-opacity text-sm font-medium h-[42px]"
+                  onClick={handleSendWhatsapp}
+                  disabled={whatsappSending || !whatsappMessage.trim() || !formData.phone}
+                  className="p-2.5 bg-foreground text-background cursor-pointer rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed h-[42px] w-[42px] flex items-center justify-center"
                 >
-                  Send
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -625,7 +904,6 @@ export function LeadModal({ lead, onClose }) {
                     </label>
                   </div>
 
-                  {/* Save Answers feedback */}
                   {answersSaveMsg && (
                     <p className={`text-sm font-medium ${answersSaveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
                       {answersSaveMsg}
@@ -635,9 +913,121 @@ export function LeadModal({ lead, onClose }) {
               )}
             </div>
           )}
+
+          {/* ═══════ BOOK EVENT TAB ═══════ */}
+          {activeTab === 'booking' && (
+            <div className="space-y-5">
+              {/* Pre-filled lead info (read-only display) */}
+              <div className="bg-slate-50 border border-border rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">Patient Details</h3>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Name:</span>
+                    <p className="font-medium text-foreground">{formData.name || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Phone:</span>
+                    <p className="font-medium text-foreground">{formData.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Email:</span>
+                    <p className="font-medium text-foreground">{formData.email || '—'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Details */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="eventType">Event Type *</Label>
+                  <select
+                    id="eventType"
+                    value={bookingData.eventType}
+                    onChange={(e) => setBookingData({ ...bookingData, eventType: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Select event type...</option>
+                    {EVENT_TYPES.map(evt => (
+                      <option key={evt.value} value={evt.value}>
+                        {evt.label} — {evt.duration} minutes
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="eventDate">Event Date *</Label>
+                    <Input
+                      id="eventDate"
+                      type="date"
+                      value={bookingData.eventDate}
+                      onChange={(e) => setBookingData({ ...bookingData, eventDate: e.target.value })}
+                      className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start Time *</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={bookingData.startTime}
+                      onChange={(e) => setBookingData({ ...bookingData, startTime: e.target.value })}
+                      className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
+                    />
+                    {bookingData.eventType && bookingData.startTime && (
+                      <p className="text-xs text-muted-foreground">
+                        End time: {(() => {
+                          const evt = EVENT_TYPES.find(e => e.value === bookingData.eventType);
+                          if (!evt) return '';
+                          const [h, m] = bookingData.startTime.split(':').map(Number);
+                          const end = new Date(2000, 0, 1, h, m + evt.duration);
+                          return `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+                        })()}
+                        {' '}({EVENT_TYPES.find(e => e.value === bookingData.eventType)?.duration} min)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bookingStore">Choose Store *</Label>
+                  <select
+                    id="bookingStore"
+                    value={bookingData.store}
+                    onChange={(e) => setBookingData({ ...bookingData, store: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Select store...</option>
+                    {STORE_LIST.map(store => (
+                      <option key={store.value} value={store.value}>{store.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="additionalNote">Additional Note</Label>
+                  <textarea
+                    id="additionalNote"
+                    placeholder="Add any additional details about the booking..."
+                    value={bookingData.additionalNote}
+                    onChange={(e) => setBookingData({ ...bookingData, additionalNote: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] resize-none"
+                  />
+                </div>
+              </div>
+
+              {bookingSaveMsg && (
+                <p className={`text-sm font-medium ${bookingSaveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {bookingSaveMsg}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
+        {/* ═══════ FOOTER ═══════ */}
         {activeTab === 'basic' && (
           <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-muted/10">
             {saveMsg && (
@@ -673,6 +1063,26 @@ export function LeadModal({ lead, onClose }) {
               >
                 {answersSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'booking' && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-muted/10">
+            {bookingSaveMsg && (
+              <p className={`text-sm font-medium ${bookingSaveMsg.includes('Failed') ? 'text-red-600' : 'text-emerald-600'}`}>
+                {bookingSaveMsg}
+              </p>
+            )}
+            <div className="ml-auto">
+              <button
+                onClick={handleBookEvent}
+                disabled={bookingSaving}
+                className="px-6 py-2.5 bg-foreground cursor-pointer text-background rounded-md hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {bookingSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Book Event
               </button>
             </div>
           </div>
