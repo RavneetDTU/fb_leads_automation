@@ -118,6 +118,7 @@ export async function getMessages(phone) {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
     });
+    // console.log('[whatsappService] getMessages →', response.message);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -126,8 +127,11 @@ export async function getMessages(phone) {
     }
 
     const data = await response.json();
-    console.log('[whatsappService] getMessages success — phone:', phone, '| total messages:', data.length);
-    return data;
+    // console.log('[whatsappService] getMessages →', data);
+    // API now returns { has_more, messages: [...] } — extract messages array
+    const messages = Array.isArray(data) ? data : (data.messages || []);
+    console.log('[whatsappService] getMessages success — phone:', phone, '| total messages:', messages.length);
+    return messages;
 }
 
 // ─────────────────────────────────────────────────────────────
