@@ -70,25 +70,31 @@ export default function DailyLeads() {
         }
     };
 
-    // Fetch leads when date changes
+    // Fetch leads when date changes + poll every 30s
     useEffect(() => {
-        const fetchLeads = async () => {
-            setIsLoading(true);
-            setError(null);
+        const fetchLeads = async (silent = false) => {
+            if (!silent) {
+                setIsLoading(true);
+                setError(null);
+            }
             try {
                 const data = await leadsService.getDailyLeads(selectedDate);
                 setLeads(data);
-                console.log("Daily leads:", data);
+                if (!silent) console.log("Daily leads:", data);
             } catch (error) {
                 console.error("Failed to load daily leads:", error);
-                setError(error.message || 'Failed to load leads');
-                setLeads([]); // Clear leads on error
+                if (!silent) {
+                    setError(error.message || 'Failed to load leads');
+                    setLeads([]);
+                }
             } finally {
-                setIsLoading(false);
+                if (!silent) setIsLoading(false);
             }
         };
 
-        fetchLeads();
+        fetchLeads(false);
+        const interval = setInterval(() => fetchLeads(true), 30000);
+        return () => clearInterval(interval);
     }, [selectedDate]);
 
     return (

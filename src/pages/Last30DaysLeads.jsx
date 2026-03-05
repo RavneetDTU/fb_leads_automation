@@ -45,23 +45,29 @@ export default function Last30DaysLeads() {
         }
     };
 
-    // Fetch leads on mount
+    // Fetch leads on mount + poll every 30s
     useEffect(() => {
-        const fetchLeads = async () => {
-            setIsLoading(true);
-            setError(null);
+        const fetchLeads = async (silent = false) => {
+            if (!silent) {
+                setIsLoading(true);
+                setError(null);
+            }
             try {
                 const data = await leadsService.getLast30DaysLeads();
                 setLeads(data);
             } catch (err) {
                 console.error('[Last30Days] Failed to load leads:', err);
-                setError(err.message || 'Failed to load leads');
-                setLeads([]);
+                if (!silent) {
+                    setError(err.message || 'Failed to load leads');
+                    setLeads([]);
+                }
             } finally {
-                setIsLoading(false);
+                if (!silent) setIsLoading(false);
             }
         };
-        fetchLeads();
+        fetchLeads(false);
+        const interval = setInterval(() => fetchLeads(true), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Filter leads by search
