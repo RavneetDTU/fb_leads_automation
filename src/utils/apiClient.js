@@ -120,5 +120,19 @@ export function extractDate(isoString) {
  */
 export function capitalizeStatus(str) {
     if (!str) return 'N/A';
+
+    // Map API status values to display-friendly labels
+    const statusMap = {
+        'new': 'New',
+        'contacted': 'Contacted',
+        'responded': 'Responded',
+        'converted': 'Converted',
+        'unread': 'Unread',
+        'initial_template_sent': 'Template_sent',
+    };
+    const lower = str.toLowerCase();
+    if (statusMap[lower]) return statusMap[lower];
+
+    // Fallback: capitalize first letter
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
