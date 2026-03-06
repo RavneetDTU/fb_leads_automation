@@ -222,49 +222,46 @@ export default function Last30DaysLeads() {
                                         className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20"
                                     >
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            {lead.date}
+                                            <div className="truncate" title={lead.date}>{lead.date}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            {lead.time}
+                                            <div className="truncate">{lead.time}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer truncate"
+                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
-                                            title={lead.name}
                                         >
-                                            {lead.name}
+                                            <div className="truncate" title={lead.name}>{lead.name}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            {lead.phone}
+                                            <div className="truncate" title={lead.phone}>{lead.phone}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer truncate"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
-                                            title={lead.campaign}
                                         >
-                                            {lead.campaign}
+                                            <div className="truncate" title={lead.campaign}>{lead.campaign}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer truncate"
+                                            className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
-                                            title={`${lead.province} / ${lead.preferred_practice}`}
                                         >
-                                            {lead.province} / {lead.preferred_practice}
+                                            <div className="truncate" title={`${lead.province} / ${lead.preferred_practice}`}>{lead.province} / {lead.preferred_practice}</div>
                                         </td>
                                         <td
-                                            className="px-2 py-2.5 cursor-pointer whitespace-nowrap"
+                                            className="px-2 py-2.5 cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            <span className={`text-xs px-2 py-1 rounded-md font-medium ${statusColors[lead.status]}`}>
+                                            <span className={`text-xs px-2 py-1 rounded-md font-medium whitespace-nowrap ${statusColors[lead.status]}`}>
                                                 {lead.status}
                                             </span>
                                         </td>
