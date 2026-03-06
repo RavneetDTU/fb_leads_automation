@@ -8,11 +8,14 @@ const statusColors = {
     Contacted: 'bg-amber-50 text-amber-700 border border-amber-200',
     Responded: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     Converted: 'bg-purple-50 text-purple-700 border border-purple-200',
+    Unread: 'bg-red-50 text-red-700 border border-red-200',
+    Template_sent: 'bg-amber-50 text-amber-700 border border-amber-200',
 };
 
 export default function Last30DaysLeads() {
     const [selectedLead, setSelectedLead] = useState(null);
     const [leads, setLeads] = useState([]);
+    const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -66,8 +69,9 @@ export default function Last30DaysLeads() {
                 setError(null);
             }
             try {
-                const data = await leadsService.getLast30DaysLeads();
-                setLeads(data);
+                const result = await leadsService.getLast30DaysLeads();
+                setLeads(result.leads);
+                if (result.stats) setStats(result.stats);
             } catch (err) {
                 console.error('[Last30Days] Failed to load leads:', err);
                 if (!silent) {
@@ -105,23 +109,35 @@ export default function Last30DaysLeads() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                    <div className="group bg-white border border-border rounded-lg px-5 py-4 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                        <div className="text-sm text-muted-foreground mb-1.5">Total Leads</div>
-                        <div className="text-2xl font-heading font-semibold text-foreground">
-                            {isLoading ? '...' : leads.length}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                    <div className="group bg-white border border-border rounded-lg px-4 py-3 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                        <div className="text-xs text-muted-foreground mb-1">Total Leads</div>
+                        <div className="text-xl font-heading font-semibold text-foreground">
+                            {isLoading ? '...' : (stats?.total ?? leads.length)}
                         </div>
                     </div>
-                    <div className="group bg-white border border-border rounded-lg px-5 py-4 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                        <div className="text-sm text-muted-foreground mb-1.5">Contacted</div>
-                        <div className="text-2xl font-heading font-semibold text-foreground">
-                            {isLoading ? '...' : leads.filter(l => l.status === 'Contacted' || l.status === 'Responded').length}
+                    <div className="group bg-white border border-border rounded-lg px-4 py-3 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                        <div className="text-xs text-muted-foreground mb-1">New</div>
+                        <div className="text-xl font-heading font-semibold text-blue-600">
+                            {isLoading ? '...' : (stats?.new ?? 0)}
                         </div>
                     </div>
-                    <div className="group bg-white border border-border rounded-lg px-5 py-4 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                        <div className="text-sm text-muted-foreground mb-1.5">New</div>
-                        <div className="text-2xl font-heading font-semibold text-foreground">
-                            {isLoading ? '...' : leads.filter(l => l.status === 'New').length}
+                    <div className="group bg-white border border-border rounded-lg px-4 py-3 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                        <div className="text-xs text-muted-foreground mb-1">Template Sent</div>
+                        <div className="text-xl font-heading font-semibold text-amber-600">
+                            {isLoading ? '...' : (stats?.initial_template_sent ?? 0)}
+                        </div>
+                    </div>
+                    <div className="group bg-white border border-border rounded-lg px-4 py-3 transition-all duration-150 cursor-pointer hover:border-red-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                        <div className="text-xs text-muted-foreground mb-1">Unread</div>
+                        <div className="text-xl font-heading font-semibold text-red-600">
+                            {isLoading ? '...' : (stats?.unread ?? 0)}
+                        </div>
+                    </div>
+                    <div className="group bg-white border border-border rounded-lg px-4 py-3 transition-all duration-150 cursor-pointer hover:border-slate-400 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                        <div className="text-xs text-muted-foreground mb-1">Responded</div>
+                        <div className="text-xl font-heading font-semibold text-emerald-600">
+                            {isLoading ? '...' : (stats?.responded ?? 0)}
                         </div>
                     </div>
                 </div>

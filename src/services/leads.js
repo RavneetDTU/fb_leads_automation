@@ -44,12 +44,16 @@ export const leadsService = {
 
             const data = await api.get(`/leads/date/${date}`);
 
+            // Handle both { leads: [...], stats: {...} } wrapper and direct array responses
+            const leadsArray = Array.isArray(data) ? data : (data.leads || []);
+            const stats = data.stats || null;
+
             // Transform the data to match UI expectations
-            const transformedLeads = data.map(transformLeadData);
+            const transformedLeads = leadsArray.map(transformLeadData);
 
             console.log(`[LeadsService] Successfully fetched ${transformedLeads.length} leads for ${date}`);
 
-            return transformedLeads;
+            return { leads: transformedLeads, stats };
         } catch (error) {
             console.error('[LeadsService] Failed to fetch daily leads:', error);
             throw error;
@@ -67,8 +71,11 @@ export const leadsService = {
 
             const data = await api.get(`/leads/campaign/${campaignId}`);
 
+            // Handle both { leads: [...] } wrapper and direct array responses
+            const leadsArray = Array.isArray(data) ? data : (data.leads || []);
+
             // Transform the data to match UI expectations
-            const transformedLeads = data.map(transformLeadData);
+            const transformedLeads = leadsArray.map(transformLeadData);
 
             console.log(`[LeadsService] Successfully fetched ${transformedLeads.length} leads for campaign ${campaignId}`);
 
@@ -246,9 +253,13 @@ export const leadsService = {
         try {
             console.log('[LeadsService] Fetching last 30 days leads');
             const data = await api.get('/leads/last-30-days');
-            const transformedLeads = data.map(transformLeadData);
+
+            // Handle both { leads: [...], stats: {...} } wrapper and direct array responses
+            const leadsArray = Array.isArray(data) ? data : (data.leads || []);
+            const stats = data.stats || null;
+            const transformedLeads = leadsArray.map(transformLeadData);
             console.log(`[LeadsService] Fetched ${transformedLeads.length} leads (last 30 days)`);
-            return transformedLeads;
+            return { leads: transformedLeads, stats };
         } catch (error) {
             console.error('[LeadsService] Failed to fetch last 30 days leads:', error);
             throw error;
