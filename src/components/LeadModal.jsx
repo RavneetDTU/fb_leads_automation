@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { leadsService } from '../services/leads';
 import { getMessages, sendMessage, normalisePhone } from '../services/whatsapp';
+import { googleService } from '../services/google';
 
 // ── Branch names for dropdown ──
 const BRANCH_NAMES = [
@@ -112,6 +113,7 @@ export function LeadModal({ lead, onClose }) {
   });
   const [bookingSaving, setBookingSaving] = useState(false);
   const [bookingSaveMsg, setBookingSaveMsg] = useState('');
+  const [connectedStores, setConnectedStores] = useState([]);
 
   // Static data
   const callData = [
@@ -239,6 +241,14 @@ export function LeadModal({ lead, onClose }) {
     }
   }, [activeTab, formData.phone, detailLoading, fetchWhatsappMessages]);
 
+  // ─── Load connected Google stores when booking tab is selected ───
+  useEffect(() => {
+    if (activeTab === 'booking') {
+      const stores = googleService.getConnectedStores();
+      setConnectedStores(stores);
+    }
+  }, [activeTab]);
+
   // Scroll to bottom when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -354,6 +364,11 @@ export function LeadModal({ lead, onClose }) {
       return;
     }
 
+    if (!formData.email) {
+      alert('Patient email is required to send a calendar invitation. Please add an email in the Basic Info tab.');
+      return;
+    }
+
     setBookingSaving(true);
     setBookingSaveMsg('');
 
@@ -366,27 +381,39 @@ export function LeadModal({ lead, onClose }) {
       const endDate = new Date(startDate.getTime() + selectedEvent.duration * 60000);
       const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
 
-      const payload = {
-        summary: selectedEvent.label,
-        description: bookingData.additionalNote || '',
-        start: { dateTime: `${bookingData.eventDate}T${bookingData.startTime}:00`, timeZone: 'auto' },
-        end: { dateTime: `${bookingData.eventDate}T${endTime}:00`, timeZone: 'auto' },
-        bookerName: formData.name,
-        bookerPhone: formData.phone,
-        bookerEmail: formData.email,
-        store: bookingData.store,
+      // Build a description with patient details
+      const descriptionParts = [
+        `Patient: ${formData.name || 'N/A'}`,
+        `Phone: ${formData.phone || 'N/A'}`,
+        `Email: ${formData.email}`,
+        `Store: ${bookingData.store}`,
+      ];
+      if (bookingData.additionalNote) {
+        descriptionParts.push(`\nNote: ${bookingData.additionalNote}`);
+      }
+
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Johannesburg';
+
+      const eventPayload = {
+        summary: `${selectedEvent.label} — ${formData.name || 'Patient'}`,
+        description: descriptionParts.join('\n'),
+        start: { dateTime: `${bookingData.eventDate}T${bookingData.startTime}:00`, timeZone },
+        end: { dateTime: `${bookingData.eventDate}T${endTime}:00`, timeZone },
+        attendees: [
+          { email: formData.email }
+        ],
       };
 
-      console.log('[LeadModal] Booking event:', payload);
-      // TODO: Replace with actual API call when endpoint is ready
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('[LeadModal] Creating calendar event for store:', bookingData.store, eventPayload);
 
-      setBookingSaveMsg('Event booked successfully!');
-      setTimeout(() => setBookingSaveMsg(''), 3000);
+      const createdEvent = await googleService.createEvent(bookingData.store, eventPayload);
+
+      setBookingSaveMsg(`Event booked! Invitation sent to ${formData.email}`);
+      setTimeout(() => setBookingSaveMsg(''), 5000);
     } catch (err) {
       console.error('Failed to book event:', err);
-      setBookingSaveMsg('Failed to book event.');
-      setTimeout(() => setBookingSaveMsg(''), 4000);
+      setBookingSaveMsg(`Failed: ${err.message}`);
+      setTimeout(() => setBookingSaveMsg(''), 5000);
     } finally {
       setBookingSaving(false);
     }
@@ -991,18 +1018,25 @@ export function LeadModal({ lead, onClose }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bookingStore">Choose Store *</Label>
-                  <select
-                    id="bookingStore"
-                    value={bookingData.store}
-                    onChange={(e) => setBookingData({ ...bookingData, store: e.target.value })}
-                    className={selectClass}
-                  >
-                    <option value="">Select store...</option>
-                    {STORE_LIST.map(store => (
-                      <option key={store.value} value={store.value}>{store.label}</option>
-                    ))}
-                  </select>
+                  <Label htmlFor="bookingStore">Choose Store (Google Connected) *</Label>
+                  {connectedStores.length === 0 ? (
+                    <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5">
+                      <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>No Google accounts connected. Please connect a store via the Calendar tab first.</span>
+                    </div>
+                  ) : (
+                    <select
+                      id="bookingStore"
+                      value={bookingData.store}
+                      onChange={(e) => setBookingData({ ...bookingData, store: e.target.value })}
+                      className={selectClass}
+                    >
+                      <option value="">Select store...</option>
+                      {connectedStores.map(storeName => (
+                        <option key={storeName} value={storeName}>{storeName}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-2">

@@ -1,6 +1,6 @@
 import { config } from '../config';
 
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.profile';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.profile';
 
 export const googleService = {
     // Get token for specific calendar
@@ -141,6 +141,65 @@ export const googleService = {
             console.error('Error fetching calendar events:', error);
             throw error;
         }
+    },
+
+    // Create a calendar event for a specific store/calendar
+    createEvent: async (calendarId, eventData) => {
+        const tokenData = googleService.getTokenForCalendar(calendarId);
+        if (!tokenData) throw new Error('Not authenticated for this store. Please connect Google account first.');
+
+        const token = tokenData.accessToken;
+
+        try {
+            // sendUpdates=all tells Google to email all attendees (the patient)
+            const response = await fetch(
+                'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                }
+            );
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem(`google_calendar_${calendarId}`);
+                    throw new Error('Session expired. Please reconnect Google account.');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || 'Failed to create event');
+            }
+
+            const createdEvent = await response.json();
+            console.log('[GoogleService] Event created:', createdEvent.id, createdEvent.htmlLink);
+            return createdEvent;
+        } catch (error) {
+            console.error('Error creating calendar event:', error);
+            throw error;
+        }
+    },
+
+    // Get all stores that have a connected (non-expired) Google account
+    getConnectedStores: () => {
+        const stores = [];
+        const prefix = 'google_calendar_';
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                const storeName = key.slice(prefix.length);
+                // Verify the token is still valid
+                const token = googleService.getTokenForCalendar(storeName);
+                if (token) {
+                    stores.push(storeName);
+                }
+            }
+        }
+
+        return stores;
     },
 
     // Logout for specific calendar
