@@ -1032,8 +1032,8 @@ export function LeadModal({ lead, onClose }) {
                       className={selectClass}
                     >
                       <option value="">Select store...</option>
-                      {connectedStores.map(storeName => (
-                        <option key={storeName} value={storeName}>{storeName}</option>
+                      {connectedStores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
                       ))}
                     </select>
                   )}
