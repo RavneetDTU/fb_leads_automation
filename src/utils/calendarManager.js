@@ -18,11 +18,11 @@ export const calendarManager = {
 
     // Create new calendar
     create(storeName) {
-        const id = storeName.toLowerCase().replace(/\s+/g, '-');
+        const id = storeName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
 
-        // Check if calendar with this ID already exists
+        // Check if calendar with this exact timestamp'd ID already exists is highly unlikely, but safe
         if (this.getById(id)) {
-            throw new Error(`Calendar "${storeName}" already exists`);
+            throw new Error(`Calendar "${storeName}" could not be created right now`);
         }
 
         const calendar = {

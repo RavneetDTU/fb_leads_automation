@@ -83,7 +83,7 @@ export function CalendarPage() {
         setGoogleState(prev => ({ ...prev, isLoading: true }));
         try {
             console.log('🔵 Calling googleService.login()...');
-            await googleService.login(calendarId);
+            await googleService.login(calendarId, calendarInfo.storeName);
             console.log('✅ Google login successful!');
 
             console.log('🔵 Fetching events...');
