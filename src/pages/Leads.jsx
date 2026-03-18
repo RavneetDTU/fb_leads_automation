@@ -33,6 +33,9 @@ export function Leads() {
     const [savingTemplate, setSavingTemplate] = useState(false);
     const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
 
+    // Auto message toggle state
+    const [autoMessageEnabled, setAutoMessageEnabled] = useState(false);
+
     const campaignFilter = searchParams.get('campaign');
 
     // API FETCH LOGIC
@@ -121,19 +124,36 @@ export function Leads() {
                             </h1>
                         </div>
 
-                        {/* Select Template Button */}
-                        <button
-                            onClick={() => setShowTemplateModal(true)}
-                            disabled={savingTemplate}
-                            className={`px-4 py-2.5 border rounded-md text-foreground cursor-pointer transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2 ${templateSaveSuccess
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                                : 'bg-white border-border hover:bg-slate-50 hover:border-slate-400'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                            {savingTemplate && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {templateSaveSuccess && <Check className="w-4 h-4" />}
-                            {selectedTemplate ? selectedTemplate.elementName : 'Select Template'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {/* Auto Message Toggle */}
+                            <button
+                                onClick={() => setAutoMessageEnabled(!autoMessageEnabled)}
+                                className={`px-4 py-2.5 border rounded-md cursor-pointer transition-all duration-200 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2.5 ${autoMessageEnabled
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                                    : 'bg-white border-border text-slate-500 hover:bg-slate-50 hover:border-slate-400'
+                                    }`}
+                            >
+                                {/* Toggle switch indicator */}
+                                <span className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${autoMessageEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${autoMessageEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                                </span>
+                                Auto Message {autoMessageEnabled ? 'On' : 'Off'}
+                            </button>
+
+                            {/* Select Template Button */}
+                            <button
+                                onClick={() => setShowTemplateModal(true)}
+                                disabled={savingTemplate}
+                                className={`px-4 py-2.5 border rounded-md text-foreground cursor-pointer transition-all duration-150 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2 ${templateSaveSuccess
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                    : 'bg-white border-border hover:bg-slate-50 hover:border-slate-400'
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {savingTemplate && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {templateSaveSuccess && <Check className="w-4 h-4" />}
+                                {selectedTemplate ? selectedTemplate.elementName : 'Select Template'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
