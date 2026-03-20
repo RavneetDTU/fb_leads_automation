@@ -27,10 +27,13 @@ export const googleService = {
     refreshAccessToken: async (calendarId) => {
         try {
             console.log(`[GoogleService] Attempting to refresh token for ${calendarId}...`);
+            const userId = localStorage.getItem('userId');
+            if (!userId) throw new Error('User not logged in');
+
             const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ calendarId })
+                body: JSON.stringify({ calendarId, userId })
             });
 
             if (!response.ok) {
@@ -82,6 +85,9 @@ export const googleService = {
                     if (response.code) {
                         try {
                             console.log('Sending authorization code to backend...');
+                            const userId = localStorage.getItem('userId');
+                            if (!userId) throw new Error('User not logged in');
+                            
                             // Send Code to Backend
                             const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
                                 method: 'POST',
@@ -89,7 +95,8 @@ export const googleService = {
                                 body: JSON.stringify({ 
                                     code: response.code,
                                     calendarId: calendarId,
-                                    storeName: storeName
+                                    storeName: storeName,
+                                    userId: userId
                                 })
                             });
 
@@ -269,5 +276,45 @@ export const googleService = {
     // Logout for specific calendar
     logout: (calendarId) => {
         localStorage.removeItem(`google_calendar_${calendarId}`);
+    },
+
+    // Sync calendars from backend on app load
+    syncUserCalendars: async () => {
+        try {
+            const userId = localStorage.getItem('userId');
+            if (!userId) return; // Not logged in yet
+
+            const response = await fetch(`${BACKEND_URL}/api/auth/calendars/${userId}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            if (data.success && data.stores) {
+                // 1. Update calendarManager storage
+                const calendars = data.stores.map(store => ({
+                    id: store.calendarId,
+                    storeName: store.storeName,
+                    createdAt: store.updatedAt ? new Date(store.updatedAt).getTime() : Date.now()
+                }));
+                localStorage.setItem('mets_calendars', JSON.stringify(calendars));
+                
+                // Dispatch event so Sidebar re-renders with new calendars
+                window.dispatchEvent(new Event('calendarsUpdated'));
+
+                // 2. Prime Google tokens so the frontend knows we have a session
+                calendars.forEach(cal => {
+                    const existingToken = googleService.getTokenForCalendar(cal.id);
+                    // Only prime if it doesn't exist to avoid overwriting an active fresh token
+                    if (!existingToken) {
+                        localStorage.setItem(`google_calendar_${cal.id}`, JSON.stringify({
+                            accessToken: 'refresh_me', // Trigger 401 when used, forcing refresh
+                            expiresAt: 0,
+                            storeName: cal.storeName
+                        }));
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('[GoogleService] Failed to sync user calendars', error);
+        }
     }
 };

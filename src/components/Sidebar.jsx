@@ -13,6 +13,14 @@ function Sidebar() {
   // Load calendars from localStorage on mount
   useEffect(() => {
     loadCalendars();
+
+    const handleUpdate = () => {
+      loadCalendars();
+    };
+    
+    // Listen for the async sync completion
+    window.addEventListener('calendarsUpdated', handleUpdate);
+    return () => window.removeEventListener('calendarsUpdated', handleUpdate);
   }, []);
 
   const loadCalendars = () => {
