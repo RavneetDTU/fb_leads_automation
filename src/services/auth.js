@@ -72,7 +72,7 @@ export const authService = {
       return {
         success: true,
         token: 'mock-admin-token-123',
-        user: { id: 'admin', name: 'Admin User', email: 'admin@jarvis.com', role: 'admin' }
+        user: { id: 'admin_1', name: 'Admin User', email: 'admin@jarvis.com', role: 'admin' }
       };
     }
 
@@ -81,7 +81,7 @@ export const authService = {
       return {
         success: true,
         token: 'mock-test-token-456',
-        user: { id: 'test', name: 'Test User', email: 'test@jarvis.com', role: 'user' }
+        user: { id: 'test_1', name: 'Test User', email: 'test@jarvis.com', role: 'user' }
       };
     }
 

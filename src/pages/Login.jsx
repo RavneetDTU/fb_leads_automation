@@ -24,6 +24,15 @@ export default function Login() {
             if (response.success || response.token) {
                 // Store the token
                 localStorage.setItem('authToken', response.token);
+                
+                // Store user info
+                if (response.user) {
+                    const userId = response.user.id || response.user.email;
+                    localStorage.setItem('userId', userId);
+                } else if (formData.email) {
+                    localStorage.setItem('userId', formData.email);
+                }
+
                 // Redirect to dashboard
                 navigate('/campaigns');
             }
