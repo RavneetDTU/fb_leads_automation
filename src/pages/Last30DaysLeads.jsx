@@ -205,14 +205,16 @@ export default function Last30DaysLeads() {
                         <table className="w-full table-fixed">
                             <thead>
                                 <tr className="bg-muted/30 border-b border-border">
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Date</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '7%' }}>Time</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '13%' }}>Name</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Created Date/Time</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '9%' }}>Last Message</th>
+                                    {/* <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '7%' }}>Time</th> */}
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Name</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Phone</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '22%' }}>Campaign</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '14%' }}>Province/Branch</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '18%' }}>Campaign</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Province/Branch</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '9%' }}>Status</th>
-                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground" style={{ width: '13%' }}>Action</th>
+                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground" style={{ width: '8%' }}>AI Mode</th>
+                                    <th className="text-center px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -225,14 +227,21 @@ export default function Last30DaysLeads() {
                                             className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            <div className="truncate" title={lead.date}>{lead.date}</div>
+                                            <div className="truncate" title={lead.date}>
+                                                {lead.date}/<br />
+                                                {lead.time}
+                                            </div>
                                         </td>
                                         <td
                                             className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
                                         >
-                                            <div className="truncate">{lead.time}</div>
+                                            <div className="truncate" title={lead.last_message_date !== 'N/A' ? `${lead.last_message_date} ${lead.last_message_time}` : 'N/A'}>
+                                                {lead.last_message_date}/<br />
+                                                {lead.last_message_time}
+                                            </div>
                                         </td>
+                                        
                                         <td
                                             className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
@@ -264,6 +273,12 @@ export default function Last30DaysLeads() {
                                             <span className={`text-xs px-2 py-1 rounded-md font-medium whitespace-nowrap ${statusColors[lead.status]}`}>
                                                 {lead.status}
                                             </span>
+                                        </td>
+                                        <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" defaultChecked={false} />
+                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                            </label>
                                         </td>
                                         <td className="px-2 py-2.5 text-center">
                                             <button

@@ -86,13 +86,13 @@ export const api = {
 /**
  * Helper to extract time from ISO datetime string
  * @param {string} isoString - ISO datetime string
- * @returns {string} - Time in HH:MM format
+ * @returns {string} - Time in 12-hour format
  */
 export function extractTime(isoString) {
     if (!isoString) return 'N/A';
     try {
         const date = new Date(isoString);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     } catch {
         return 'N/A';
     }

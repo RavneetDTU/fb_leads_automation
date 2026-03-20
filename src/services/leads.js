@@ -20,6 +20,8 @@ function transformLeadData(apiLead) {
         status: capitalizeStatus(apiLead.whatsapp_status || apiLead.status), // 'new' -> 'New', 'contacted' -> 'Contacted'
         time: extractTime(apiLead.created_at),
         date: extractDate(apiLead.created_at),
+        last_message_date: (apiLead.last_message_time || apiLead.last_message_at) ? extractDate(apiLead.last_message_time || apiLead.last_message_at) : 'N/A',
+        last_message_time: (apiLead.last_message_time || apiLead.last_message_at) ? extractTime(apiLead.last_message_time || apiLead.last_message_at): 'N/A', 
 
         // Additional fields from API
         adId: apiLead.ad_id,
