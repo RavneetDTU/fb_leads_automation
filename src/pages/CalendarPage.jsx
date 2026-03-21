@@ -95,6 +95,26 @@ export function CalendarPage() {
         }
     };
 
+    const handleDisconnect = async () => {
+        if (!window.confirm('Are you sure you want to remove this calendar connection?')) return;
+        
+        setGoogleState(prev => ({ ...prev, isLoading: true }));
+        try {
+            await googleService.disconnectCalendar(calendarId);
+            setGoogleState(prev => ({ 
+                ...prev, 
+                isConnected: false, 
+                isLoading: false, 
+                events: null, 
+                todayDate: null,
+                isExpanded: true
+            }));
+        } catch (error) {
+            console.error('Failed to disconnect:', error);
+            setGoogleState(prev => ({ ...prev, isLoading: false }));
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <div className="px-8 py-5">
@@ -121,19 +141,34 @@ export function CalendarPage() {
                                         ? 'View and manage your upcoming calendar events'
                                         : 'Connect your Google Calendar to view upcoming events and sync your schedule'}
                                 </p>
-                                {googleState.isConnected && (
-                                    <p className="text-xs text-[rgb(42,153,116)] font-medium mt-2">
-                                        Connected • Showing events of the day
-                                    </p>
-                                )}
+                                    {googleState.isConnected && (
+                                        <p className="text-xs text-[rgb(42,153,116)] font-medium mt-2">
+                                            Connected • Showing events of the day
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-md">
+                                        <span className="text-xs font-medium text-muted-foreground">Store:</span>
+                                        <span className="text-sm font-semibold text-foreground">
+                                            {calendarInfo?.storeName || 'Unknown'}
+                                        </span>
+                                    </div>
+                                    
+                                    {googleState.isConnected && (
+                                        <button
+                                            onClick={handleDisconnect}
+                                            disabled={googleState.isLoading}
+                                            className="px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 hover:border-red-300 transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center w-full gap-1.5"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Remove Calendar
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-md">
-                                <span className="text-xs font-medium text-muted-foreground">Store:</span>
-                                <span className="text-sm font-semibold text-foreground">
-                                    {calendarInfo?.storeName || 'Unknown'}
-                                </span>
-                            </div>
-                        </div>
 
                         {!googleState.isConnected ? (
                             /* DISCONNECTED STATE */
@@ -238,7 +273,10 @@ export function CalendarPage() {
                                                     <div className="flex flex-col items-center flex-shrink-0 relative">
 
                                                         {/* The Dot */}
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-foreground ring-4 ring-gray-200 group-hover:ring-slate-300 transition-all z-10"></div>
+                                                        <div 
+                                                            className={`w-2.5 h-2.5 rounded-full ring-4 transition-all z-10 ${(event.title || '').toLowerCase().includes('wax removal') ? 'ring-[#2ce6e6ff]' : 'ring-gray-200 group-hover:ring-slate-300'}`}
+                                                            style={{ backgroundColor: (event.title || '').toLowerCase().includes('wax removal') ? '#2ce6e6ff' : (event.color || '#0f172a') }}
+                                                        ></div>
 
                                                         {/* The Line */}
                                                         {/* {index !== (googleState.events?.length || 0) - 1 && (

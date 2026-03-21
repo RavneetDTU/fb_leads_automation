@@ -206,11 +206,17 @@ export const googleService = {
                 return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(isoString));
             };
 
+            const EVENT_COLORS = {
+                '1': '#a4bdfc', '2': '#7cb342', '3': '#8e24aa', '4': '#e67c73',
+                '5': '#f6bf26', '6': '#f4511e', '7': '#039be5', '8': '#616161',
+                '9': '#3f51b5', '10': '#0b8043', '11': '#d50000'
+            };
+
             const events = (data.items || []).map(event => ({
                 id: event.id,
                 title: event.summary || 'No Title',
                 time: event.start.dateTime ? formatTime(event.start.dateTime) : 'All Day',
-                color: '#3B82F6'
+                color: event.colorId ? (EVENT_COLORS[event.colorId] || '#3B82F6') : '#3B82F6'
             }));
 
             return {
@@ -271,6 +277,40 @@ export const googleService = {
         }
 
         return stores;
+    },
+
+    // Disconnect Calendar (Backend + LocalStorage)
+    disconnectCalendar: async (calendarId) => {
+        try {
+            console.log(`[GoogleService] Disconnecting calendar ${calendarId}...`);
+            const userId = localStorage.getItem('userId');
+            if (!userId) throw new Error('User not logged in');
+
+            const response = await fetch(`${BACKEND_URL}/api/auth/calendars/${calendarId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.warn('Backend returned error or not found:', errorData);
+            }
+
+            // Remove from localStorage
+            googleService.logout(calendarId);
+            
+            // Dispatch event so UI can update
+            window.dispatchEvent(new Event('calendarsUpdated'));
+            
+            console.log(`[GoogleService] Successfully disconnected calendar ${calendarId}`);
+            return true;
+        } catch (error) {
+            console.error('[GoogleService] Failed to disconnect calendar:', error);
+            googleService.logout(calendarId);
+            window.dispatchEvent(new Event('calendarsUpdated'));
+            throw error;
+        }
     },
 
     // Logout for specific calendar
