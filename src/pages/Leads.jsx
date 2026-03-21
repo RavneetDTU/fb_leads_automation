@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { Input } from '../components/ui/input';
 import { Search, Loader2, Check } from 'lucide-react';
 import { LeadModal } from '../components/LeadModal';
@@ -27,8 +27,15 @@ export function Leads() {
     const [loading, setLoading] = useState(false);
     const [searchParams] = useSearchParams();
 
+    const location = useLocation();
+    const passedTemplateName = location.state?.templateName;
+
     // Template selection state
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [selectedTemplate, setSelectedTemplate] = useState(
+        passedTemplateName && passedTemplateName !== 'No Template Selected' 
+            ? { elementName: passedTemplateName } 
+            : null
+    );
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [savingTemplate, setSavingTemplate] = useState(false);
     const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);

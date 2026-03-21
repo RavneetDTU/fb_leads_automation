@@ -108,7 +108,7 @@ const DUMMY_CAMPAIGNS = [
 function CampaignCard({ campaign, onClick }) {
     return (
         <div
-            onClick={() => onClick(campaign.id)}
+            onClick={() => onClick(campaign)}
             className="group bg-white border border-border rounded-lg px-5 py-4 cursor-pointer transition-all duration-150 hover:border-slate-400 hover:shadow-[0_6px_14px_rgba(0,0,0,0.16)]"
         >
             <div className="flex items-start justify-between gap-2 mb-3 pb-2.5 border-b border-border min-w-0">
@@ -219,9 +219,9 @@ export function Campaigns() {
         fetchData();
     }, []);
 
-    const handleCampaignClick = (campaignId) => {
-        console.log(`Campaigns Page: Navigating to details for campaign ID: ${campaignId}`);
-        navigate(`/leads?campaign=${campaignId}`);
+    const handleCampaignClick = (campaign) => {
+        console.log(`Campaigns Page: Navigating to details for campaign ID: ${campaign.id}`);
+        navigate(`/leads?campaign=${campaign.id}`, { state: { templateName: campaign.selectedTemplate } });
     };
 
     // Loading State UI

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { leadsService } from '../services/leads';
+import { campaignsService } from '../services/campaigns';
 
 const EMPTY_FORM = {
     campaign_id: '',
@@ -15,7 +16,6 @@ const EMPTY_FORM = {
 };
 
 const FORM_FIELDS = [
-    { key: 'campaign_id', label: 'Campaign ID', placeholder: 'e.g. 12345' },
     { key: 'name', label: 'Name', placeholder: 'Full name' },
     { key: 'phone', label: 'Phone', placeholder: 'e.g. 27821234567' },
     { key: 'email', label: 'Email', placeholder: 'email@example.com' },
@@ -35,6 +35,24 @@ const FORM_FIELDS = [
 export function DemoLeadModal({ onClose, onCreated }) {
     const [form, setForm] = useState(EMPTY_FORM);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const [campaigns, setCampaigns] = useState([]);
+    const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+
+    useEffect(() => {
+        const fetchCampaigns = async () => {
+            setLoadingCampaigns(true);
+            try {
+                const data = await campaignsService.getActiveCampaigns();
+                setCampaigns(data);
+            } catch (err) {
+                console.error("Failed to load campaigns", err);
+            } finally {
+                setLoadingCampaigns(false);
+            }
+        };
+        fetchCampaigns();
+    }, []);
 
     const handleChange = (field, value) => {
         setForm(prev => ({ ...prev, [field]: value }));
@@ -77,6 +95,21 @@ export function DemoLeadModal({ onClose, onCreated }) {
 
                 {/* Form Body */}
                 <div className="px-6 py-5 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1.5">Campaign Name</label>
+                        <select
+                            value={form.campaign_id}
+                            onChange={(e) => handleChange('campaign_id', e.target.value)}
+                            disabled={loadingCampaigns}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        >
+                            <option value="">{loadingCampaigns ? 'Loading campaigns...' : 'Select a Campaign'}</option>
+                            {campaigns.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {FORM_FIELDS.map(({ key, label, placeholder }) => (
                         <div key={key}>
                             <label className="block text-sm font-medium text-foreground mb-1.5">{label}</label>
