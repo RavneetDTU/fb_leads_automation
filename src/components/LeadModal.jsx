@@ -25,6 +25,20 @@ const EVENT_TYPES = [
 // ── Store list for calendar booking ──
 const STORE_LIST = BRANCH_NAMES.map(name => ({ value: name, label: name }));
 
+// ── Status Options ──
+const STATUS_OPTIONS = [
+  'Not Interested',
+  'Booked Appointment',
+  'Booked Appointment (Full)',
+  'Please Call Later',
+  'Will Call Us',
+  'No Show',
+  'Too Young',
+  'Too Far',
+  'Other - Refer to Notes',
+  'Interested - Not Right Now'
+];
+
 // ── WhatsApp helpers ──
 function formatMessageTime(isoString) {
   if (!isoString) return '';
@@ -541,12 +555,20 @@ Phone: 021 110 0275`;
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
-                      <Input
+                      <select
                         id="status"
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="bg-white border-border focus-visible:border-slate-400 focus-visible:ring-[rgba(0,0,0,0.08)]"
-                      />
+                        className={selectClass}
+                      >
+                        <option value="">Select Status</option>
+                        {formData.status && !STATUS_OPTIONS.includes(formData.status) && (
+                          <option value={formData.status}>{formData.status}</option>
+                        )}
+                        {STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
