@@ -392,6 +392,34 @@ export function LeadModal({ lead, onClose }) {
         descriptionParts.push(`\nNote: ${bookingData.additionalNote}`);
       }
 
+      if (bookingData.eventType === 'wax-removal') {
+        const [hourStr, minuteStr] = bookingData.startTime.split(':');
+        const hour = parseInt(hourStr, 10);
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        const formattedHour = hour % 12 || 12;
+        const formattedTime = `${formattedHour}:${minuteStr}${ampm}`;
+        const appointmentTime = `${bookingData.eventDate} at ${formattedTime}`;
+        const customMessage = `Good Day,
+
+Thank you for booking your ear wax removal appointment with us.
+Your appointment has been confirmed for ${appointmentTime}
+ 
+The cost is R200.00 per ear or R400.00 for both ears.
+ 
+We will first examine your ears to check for wax and make sure it is safe to proceed. If suitable, we will gently remove the wax using a cleaning solution and specialised equipment. Once the procedure is complete, we will re-examine your ears to ensure they are fully clear.
+ 
+We are located in Checkers Hyper in Blue Route Mall (corner of Vans Road& Tokai Road), opposite teller number  15/16. As you enter the checkers hyper you will see shops along the left we are the 4th Shop.
+Pin Location : https://goo.gl/maps/qpNFizrYWaUnEeQB6
+We look forward to meeting you!
+If you have any questions, feel free to contact us on the number below.
+Hearing Aid Labs Blue Route Mall
+Shop –G260
+16 Tokai Road, Corner Vans & Tokai Road
+Tokai,7945
+Phone: 021 110 0275`;
+        descriptionParts.push(`\n${customMessage}`);
+      }
+
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Johannesburg';
 
       const eventPayload = {
@@ -403,6 +431,10 @@ export function LeadModal({ lead, onClose }) {
           { email: formData.email }
         ],
       };
+
+      if (bookingData.eventType === 'wax-removal') {
+        eventPayload.colorId = '7'; // Peacock color
+      }
 
       console.log('[LeadModal] Creating calendar event for store:', bookingData.store, eventPayload);
 
