@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LeadModal } from '../components/LeadModal';
+import { AutoMessageCampaignsModal } from '../components/AutoMessageCampaignsModal';
 import { leadsService } from '../services/leads';
 import { sendTemplateMessage } from '../services/whatsapp';
+import { Bot } from 'lucide-react';
 
 const statusColors = {
     New: 'bg-blue-50 text-blue-700 border border-blue-200',
@@ -24,6 +26,9 @@ export default function Last30DaysLeads() {
     // Send message state
     const [sendingLeadId, setSendingLeadId] = useState(null);
     const [sentLeadIds, setSentLeadIds] = useState(new Set());
+    
+    // Auto message modal visibility
+    const [showAutoMessageModal, setShowAutoMessageModal] = useState(false);
 
     // Derive unique campaign names and statuses from loaded leads
     const uniqueCampaigns = useMemo(() => {
@@ -144,6 +149,14 @@ export default function Last30DaysLeads() {
 
                 {/* Search + Filters Row */}
                 <div className="mb-5 flex flex-wrap items-center gap-3">
+                    {/* <button
+                        onClick={() => setShowAutoMessageModal(true)}
+                        className="flex items-center gap-2 px-4 py-1.5 h-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                    >
+                        <Bot className="w-4 h-4" />
+                        Auto-Message Campaigns
+                    </button> */}
+
                     <div className="relative w-56">
                         <input
                             type="search"
@@ -184,6 +197,13 @@ export default function Last30DaysLeads() {
                             Clear Filters
                         </button>
                     )}
+                    <button
+                        onClick={() => setShowAutoMessageModal(true)}
+                        className="flex items-center ml-auto gap-2 px-4 py-1.5 h-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                    >
+                        <Bot className="w-4 h-4" />
+                        Auto-Message Campaigns
+                    </button>
                 </div>
 
                 {/* Leads Table */}
@@ -315,6 +335,11 @@ export default function Last30DaysLeads() {
 
             {selectedLead && (
                 <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+            )}
+
+            {/* Auto Message Modal */}
+            {showAutoMessageModal && (
+                <AutoMessageCampaignsModal onClose={() => setShowAutoMessageModal(false)} />
             )}
         </div>
     );
