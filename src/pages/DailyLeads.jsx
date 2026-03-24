@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
 import { LeadModal } from '../components/LeadModal';
 import { DemoLeadModal } from '../components/DemoLeadModal';
+import { AutoMessageCampaignsModal } from '../components/AutoMessageCampaignsModal';
 import { leadsService } from '../services/leads';
 import { sendTemplateMessage } from '../services/whatsapp';
+import { Bot } from 'lucide-react';
 
 const statusColors = {
     New: 'bg-blue-50 text-blue-700 border border-blue-200',
@@ -30,6 +32,9 @@ export default function DailyLeads() {
     const [sentLeadIds, setSentLeadIds] = useState(new Set());
     // Demo Lead modal visibility
     const [showDemoModal, setShowDemoModal] = useState(false);
+    
+    // Auto message modal visibility
+    const [showAutoMessageModal, setShowAutoMessageModal] = useState(false);
 
     // Callback after demo lead is created — refresh the leads list
     const handleDemoCreated = async () => {
@@ -130,18 +135,25 @@ export default function DailyLeads() {
                         </button>
                     </div>
 
-                    {/* AI Toggle */}
-                    <div className="flex items-center gap-2 pb-1">
-                        <span className="text-sm text-muted-foreground font-medium">Send with AI</span>
+                    {/* Auto-Message Campaigns Button */}
+                    <div className="flex items-center pb-1">
+                        {/* Commented out Send with AI as requested
+                        <div className="flex items-center gap-2 pb-1">
+                            <span className="text-sm text-muted-foreground font-medium">Send with AI</span>
+                            <button
+                                onClick={() => setSendWithAI(!sendWithAI)}
+                                className={`relative inline-flex h-6 w-11 items-center cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 ${sendWithAI ? 'bg-blue-500' : 'bg-slate-300'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${sendWithAI ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
+                        */}
                         <button
-                            onClick={() => setSendWithAI(!sendWithAI)}
-                            className={`relative inline-flex h-6 w-11 items-center cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 ${sendWithAI ? 'bg-blue-500' : 'bg-slate-300'
-                                }`}
+                            onClick={() => setShowAutoMessageModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 rounded-lg font-medium text-sm transition-all shadow-sm cursor-pointer"
                         >
-                            <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${sendWithAI ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                            />
+                            <Bot className="w-4 h-4" />
+                            Auto-Message Campaigns
                         </button>
                     </div>
                 </div>
@@ -288,6 +300,11 @@ export default function DailyLeads() {
                     onClose={() => setShowDemoModal(false)}
                     onCreated={handleDemoCreated}
                 />
+            )}
+
+            {/* Auto Message Modal */}
+            {showAutoMessageModal && (
+                <AutoMessageCampaignsModal onClose={() => setShowAutoMessageModal(false)} />
             )}
         </div>
     );

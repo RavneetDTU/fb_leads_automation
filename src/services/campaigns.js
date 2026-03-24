@@ -103,5 +103,40 @@ export const campaignsService = {
       console.error('[CampaignsService] Failed to update campaign template:', error);
       throw error;
     }
+  },
+
+  /**
+   * Update auto message status for a campaign
+   * @param {string} campaignId - Campaign ID
+   * @param {boolean} enabled - Whether auto message should be enabled
+   * @returns {Promise<Object>} - Update response
+   */
+  async updateAutoMessageStatus(campaignId, enabled) {
+    try {
+      console.log(`[CampaignsService] Updating auto message for campaign ${campaignId} to ${enabled}`);
+      // api from user: PUT 120244601729920281/auto-message?enabled=false
+      const data = await api.post(`/campaigns/${campaignId}/auto-message?enabled=${enabled}`);
+      console.log('[CampaignsService] Auto message updated successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('[CampaignsService] Failed to update auto message status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch list of campaigns that have auto message enabled
+   * @returns {Promise<Array>} - List of enabled campaigns
+   */
+  async getAutoMessageEnabledCampaigns() {
+    try {
+      console.log('[CampaignsService] Fetching auto-message enabled campaigns...');
+      const data = await api.get('/campaigns/auto-message-enabled');
+      console.log('[CampaignsService] Auto message enabled campaigns fetched:', data.length);
+      return data;
+    } catch (error) {
+      console.error('[CampaignsService] Failed to fetch auto-message enabled campaigns:', error);
+      throw error;
+    }
   }
 };

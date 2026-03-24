@@ -45,6 +45,34 @@ export function Leads() {
 
     const campaignFilter = searchParams.get('campaign');
 
+    // Fetch Auto Message Status
+    useEffect(() => {
+        const fetchAutoMessageStatus = async () => {
+            if (!campaignFilter) return;
+            try {
+                const enabledCampaigns = await campaignsService.getAutoMessageEnabledCampaigns();
+                const isEnabled = enabledCampaigns.some(c => String(c.id) === String(campaignFilter));
+                setAutoMessageEnabled(isEnabled);
+            } catch (error) {
+                console.error("Failed to fetch auto message status", error);
+            }
+        };
+        fetchAutoMessageStatus();
+    }, [campaignFilter]);
+
+    const handleAutoMessageToggle = async () => {
+        if (!campaignFilter) return;
+        const newStatus = !autoMessageEnabled;
+        setAutoMessageEnabled(newStatus); // Optimistic update
+        try {
+            await campaignsService.updateAutoMessageStatus(campaignFilter, newStatus);
+        } catch (error) {
+            console.error('Failed to update auto message status', error);
+            setAutoMessageEnabled(!newStatus); // Revert on failure
+            alert('Failed to update Auto Message status. Please try again.');
+        }
+    };
+
     // API FETCH LOGIC
     useEffect(() => {
         const fetchSpecificLeads = async () => {
@@ -134,7 +162,7 @@ export function Leads() {
                         <div className="flex items-center gap-3">
                             {/* Auto Message Toggle */}
                             <button
-                                onClick={() => setAutoMessageEnabled(!autoMessageEnabled)}
+                                onClick={handleAutoMessageToggle}
                                 className={`px-4 py-2.5 border rounded-md cursor-pointer transition-all duration-200 font-medium text-sm shadow-sm whitespace-nowrap flex items-center gap-2.5 ${autoMessageEnabled
                                     ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
                                     : 'bg-white border-border text-slate-500 hover:bg-slate-50 hover:border-slate-400'
