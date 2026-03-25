@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -6,6 +7,12 @@ import { Input } from './ui/input';
 export function AddCalendarModal({ isOpen, onClose, onSubmit }) {
     const [storeName, setStoreName] = useState('');
     const [error, setError] = useState('');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -31,9 +38,9 @@ export function AddCalendarModal({ isOpen, onClose, onSubmit }) {
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted) return null;
 
-    return (
+    return createPortal(
         <>
             {/* Backdrop */}
             <div
@@ -97,6 +104,7 @@ export function AddCalendarModal({ isOpen, onClose, onSubmit }) {
                     </form>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 }
