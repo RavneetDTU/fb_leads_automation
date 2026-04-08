@@ -360,7 +360,7 @@ export default function Last30DaysLeads() {
         const matchesSearch = !searchTerm ||
             lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.phone.includes(searchTerm) ||
-            (lead.campaign || '').toLowerCase().includes(searchTerm.toLowerCase());
+            (lead.campaign || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(lead.hal_leadId).includes(searchTerm);
 
         const matchesCampaign = !filterCampaign || lead.campaign === filterCampaign;
         const matchesStatus = !filterStatus || lead.status === filterStatus;
