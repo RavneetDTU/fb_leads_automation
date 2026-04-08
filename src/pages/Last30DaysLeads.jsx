@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { LeadModal } from '../components/LeadModal';
 import { AutoMessageCampaignsModal } from '../components/AutoMessageCampaignsModal';
 import { leadsService } from '../services/leads';
 import { sendTemplateMessage } from '../services/whatsapp';
-import { Bot } from 'lucide-react';
+import { Bot, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const statusColors = {
     New: 'bg-blue-50 text-blue-700 border border-blue-200',
@@ -14,6 +14,267 @@ const statusColors = {
     Template_sent: 'bg-amber-50 text-amber-700 border border-amber-200',
 };
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function toYMD(date) {
+    // Returns "YYYY-MM-DD" for a Date object, local time
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function formatDisplayDate(ymd) {
+    if (!ymd) return '';
+    const [y, m, d] = ymd.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+}
+
+function formatRangeLabel(start, end) {
+    if (!start) return 'Date Range';
+    if (!end || start === end) return formatDisplayDate(start);
+    return `${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+}
+
+// ─── DateRangePicker Component ───────────────────────────────────────────────
+function DateRangePicker({ dateRange, onChange }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [pickerMonth, setPickerMonth] = useState(() => {
+        // Default to current month
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [pickingStep, setPickingStep] = useState('start'); // 'start' | 'end'
+    const [hoverDate, setHoverDate] = useState(null);
+    const containerRef = useRef(null);
+
+    // Close on outside click
+    useEffect(() => {
+        function handleOutsideClick(e) {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        }
+        if (isOpen) {
+            document.addEventListener('mousedown', handleOutsideClick);
+        }
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isOpen]);
+
+    // Reset picking step when picker opens
+    const handleToggle = () => {
+        if (!isOpen) {
+            setPickingStep(dateRange.start ? 'end' : 'start');
+            setHoverDate(null);
+        }
+        setIsOpen(prev => !prev);
+    };
+
+    const handleClearRange = (e) => {
+        e.stopPropagation();
+        onChange({ start: null, end: null });
+        setPickingStep('start');
+        setHoverDate(null);
+        setIsOpen(false);
+    };
+
+    const handleDayClick = (ymd) => {
+        if (pickingStep === 'start') {
+            onChange({ start: ymd, end: null });
+            setPickingStep('end');
+        } else {
+            // End step
+            if (ymd === dateRange.start) {
+                // Clicked same day → single-day range
+                onChange({ start: ymd, end: ymd });
+                setIsOpen(false);
+                setPickingStep('start');
+            } else if (ymd < dateRange.start) {
+                // Clicked before start → swap
+                onChange({ start: ymd, end: dateRange.start });
+                setIsOpen(false);
+                setPickingStep('start');
+            } else {
+                onChange({ start: dateRange.start, end: ymd });
+                setIsOpen(false);
+                setPickingStep('start');
+            }
+            setHoverDate(null);
+        }
+    };
+
+    // Build calendar days for the current pickerMonth
+    const calendarDays = useMemo(() => {
+        const year = pickerMonth.getFullYear();
+        const month = pickerMonth.getMonth();
+        const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Shift so week starts Monday: Sun → 6, Mon → 0 ... Sat → 5
+        const startOffset = (firstDay + 6) % 7;
+        const days = [];
+        // Leading empty cells
+        for (let i = 0; i < startOffset; i++) days.push(null);
+        for (let d = 1; d <= daysInMonth; d++) {
+            days.push(toYMD(new Date(year, month, d)));
+        }
+        // Trailing empties so grid is full weeks
+        while (days.length % 7 !== 0) days.push(null);
+        return days;
+    }, [pickerMonth]);
+
+    const monthLabel = pickerMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    // Compute range boundaries for highlight logic
+    const effectiveEnd = pickingStep === 'end' && hoverDate
+        ? (hoverDate >= (dateRange.start || '') ? hoverDate : dateRange.start)
+        : (dateRange.end || dateRange.start);
+    const effectiveStart = pickingStep === 'end' && hoverDate && hoverDate < (dateRange.start || '')
+        ? hoverDate
+        : dateRange.start;
+
+    const getDayClasses = (ymd) => {
+        if (!ymd) return '';
+
+        const isStart = ymd === dateRange.start;
+        const isEnd = ymd === effectiveEnd;
+        const isInRange = effectiveStart && effectiveEnd && ymd > effectiveStart && ymd < effectiveEnd;
+        const isHoverPreview = pickingStep === 'end' && hoverDate &&
+            effectiveStart && effectiveEnd &&
+            ymd > effectiveStart && ymd < effectiveEnd;
+        const isToday = ymd === toYMD(new Date());
+
+        let classes = 'relative flex items-center justify-center w-8 h-8 text-sm cursor-pointer select-none rounded-full transition-all duration-100 ';
+
+        if (isStart || (isEnd && dateRange.start)) {
+            classes += 'bg-slate-800 text-white font-semibold shadow-sm ';
+        } else if (isInRange || isHoverPreview) {
+            classes += 'bg-slate-100 text-slate-800 rounded-none ';
+        } else if (isToday) {
+            classes += 'border border-slate-300 text-slate-800 font-medium hover:bg-slate-100 ';
+        } else {
+            classes += 'text-slate-700 hover:bg-slate-100 ';
+        }
+
+        return classes;
+    };
+
+    const hasRange = !!dateRange.start;
+    const isActive = hasRange;
+
+    return (
+        <div className="relative" ref={containerRef}>
+            {/* Trigger Button */}
+            <button
+                id="date-range-picker-btn"
+                onClick={handleToggle}
+                className={`flex items-center gap-2 h-9 px-3 rounded-md border text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                    isActive
+                        ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                        : 'bg-white border-border text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                }`}
+            >
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span className={isActive ? 'text-white' : 'text-slate-600'}>
+                    Date Range
+                </span>
+            </button>
+
+            {/* Dropdown Calendar Panel */}
+            {isOpen && (
+                <div
+                    className="absolute top-full left-0 mt-2 z-50 bg-white border border-border rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-4 w-[280px]"
+                    style={{ minWidth: 280 }}
+                >
+                    {/* Instruction */}
+                    <p className="text-xs text-slate-400 mb-3 font-medium">
+                        {pickingStep === 'start' ? '📌 Click a start date' : '📌 Click an end date (or the same date for a single day)'}
+                    </p>
+
+                    {/* Month Navigation */}
+                    <div className="flex items-center justify-between mb-3">
+                        <button
+                            onClick={() => setPickerMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm font-semibold text-slate-800">{monthLabel}</span>
+                        <button
+                            onClick={() => setPickerMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Weekday headers */}
+                    <div className="grid grid-cols-7 mb-1">
+                        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
+                            <div key={d} className="flex items-center justify-center w-8 h-7 text-xs font-medium text-slate-400">
+                                {d}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Day Grid */}
+                    <div className="grid grid-cols-7 gap-y-1">
+                        {calendarDays.map((ymd, idx) => {
+                            if (!ymd) return <div key={`empty-${idx}`} className="w-8 h-8" />;
+
+                            // Compute range wrapper bg for in-between days
+                            const inRange = effectiveStart && effectiveEnd && ymd > effectiveStart && ymd < effectiveEnd;
+                            const isRangeStart = ymd === effectiveStart && effectiveEnd && effectiveStart !== effectiveEnd;
+                            const isRangeEnd = ymd === effectiveEnd && effectiveStart && effectiveStart !== effectiveEnd;
+
+                            return (
+                                <div
+                                    key={ymd}
+                                    className={`relative flex items-center justify-center h-8 ${
+                                        inRange ? 'bg-slate-100' : ''
+                                    } ${isRangeStart ? 'rounded-l-full' : ''} ${isRangeEnd ? 'rounded-r-full' : ''}`}
+                                    onMouseEnter={() => pickingStep === 'end' && setHoverDate(ymd)}
+                                    onMouseLeave={() => setHoverDate(null)}
+                                    onClick={() => handleDayClick(ymd)}
+                                >
+                                    <span className={getDayClasses(ymd)}>
+                                        {parseInt(ymd.split('-')[2], 10)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                        <div className="text-xs text-slate-400">
+                            {dateRange.start && !dateRange.end && pickingStep === 'end' && (
+                                <span>Start: <span className="text-slate-600 font-medium">{formatDisplayDate(dateRange.start)}</span></span>
+                            )}
+                            {dateRange.start && dateRange.end && (
+                                <span className="text-slate-600 font-medium">
+                                    {dateRange.start === dateRange.end
+                                        ? formatDisplayDate(dateRange.start)
+                                        : `${formatDisplayDate(dateRange.start)} – ${formatDisplayDate(dateRange.end)}`}
+                                </span>
+                            )}
+                        </div>
+                        {(dateRange.start || dateRange.end) && (
+                            <button
+                                onClick={handleClearRange}
+                                className="text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer font-medium"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 export default function Last30DaysLeads() {
     const [selectedLead, setSelectedLead] = useState(null);
     const [leads, setLeads] = useState([]);
@@ -23,10 +284,12 @@ export default function Last30DaysLeads() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCampaign, setFilterCampaign] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
+    const [dateRange, setDateRange] = useState({ start: null, end: null });
+
     // Send message state
     const [sendingLeadId, setSendingLeadId] = useState(null);
     const [sentLeadIds, setSentLeadIds] = useState(new Set());
-    
+
     // Auto message modal visibility
     const [showAutoMessageModal, setShowAutoMessageModal] = useState(false);
 
@@ -92,7 +355,7 @@ export default function Last30DaysLeads() {
         return () => clearInterval(interval);
     }, []);
 
-    // Filter leads by search + campaign + status (AND logic)
+    // Filter leads by search + campaign + status + date range (AND logic)
     const displayLeads = leads.filter(lead => {
         const matchesSearch = !searchTerm ||
             lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,8 +365,23 @@ export default function Last30DaysLeads() {
         const matchesCampaign = !filterCampaign || lead.campaign === filterCampaign;
         const matchesStatus = !filterStatus || lead.status === filterStatus;
 
-        return matchesSearch && matchesCampaign && matchesStatus;
+        const matchesDateRange = (() => {
+            if (!dateRange.start) return true;
+            const leadDate = lead.date; // already "YYYY-MM-DD"
+            const rangeEnd = dateRange.end || dateRange.start;
+            return leadDate >= dateRange.start && leadDate <= rangeEnd;
+        })();
+
+        return matchesSearch && matchesCampaign && matchesStatus && matchesDateRange;
     });
+
+    const hasAnyFilter = filterCampaign || filterStatus || dateRange.start;
+
+    const clearAllFilters = () => {
+        setFilterCampaign('');
+        setFilterStatus('');
+        setDateRange({ start: null, end: null });
+    };
 
     return (
         <div className="min-h-screen bg-background">
@@ -149,14 +427,8 @@ export default function Last30DaysLeads() {
 
                 {/* Search + Filters Row */}
                 <div className="mb-5 flex flex-wrap items-center gap-3">
-                    {/* <button
-                        onClick={() => setShowAutoMessageModal(true)}
-                        className="flex items-center gap-2 px-4 py-1.5 h-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                    >
-                        <Bot className="w-4 h-4" />
-                        Auto-Message Campaigns
-                    </button> */}
 
+                    {/* Search */}
                     <div className="relative w-56">
                         <input
                             type="search"
@@ -167,6 +439,7 @@ export default function Last30DaysLeads() {
                         />
                     </div>
 
+                    {/* Filter by Campaign */}
                     <select
                         value={filterCampaign}
                         onChange={(e) => setFilterCampaign(e.target.value)}
@@ -178,25 +451,35 @@ export default function Last30DaysLeads() {
                         ))}
                     </select>
 
+                    {/* Filter by Status */}
                     <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="h-9 rounded-md border border-border bg-white px-3 py-1 text-sm transition-colors focus-visible:outline-none cursor-pointer focus-visible:border-slate-400 focus-visible:ring-[3px] focus-visible:ring-[rgba(0,0,0,0.08)] min-w-[180px]"
                     >
-                        <option value="">Filter by Statuses</option>
+                        <option value="">Filter by Status</option>
                         {uniqueStatuses.map(s => (
                             <option key={s} value={s}>{s}</option>
                         ))}
                     </select>
 
-                    {(filterCampaign || filterStatus) && (
+                    {/* ── Date Range Picker ── */}
+                    <DateRangePicker
+                        dateRange={dateRange}
+                        onChange={setDateRange}
+                    />
+
+                    {/* Clear Filters — shows when any filter is active */}
+                    {hasAnyFilter && (
                         <button
-                            onClick={() => { setFilterCampaign(''); setFilterStatus(''); }}
+                            onClick={clearAllFilters}
                             className="h-9 px-3 rounded-md border border-border bg-white text-sm text-muted-foreground hover:text-foreground hover:border-slate-400 transition-colors cursor-pointer"
                         >
                             Clear Filters
                         </button>
                     )}
+
+                    {/* Auto-Message Campaigns Button */}
                     <button
                         onClick={() => setShowAutoMessageModal(true)}
                         className="flex items-center ml-auto gap-2 px-4 py-1.5 h-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
@@ -205,6 +488,24 @@ export default function Last30DaysLeads() {
                         Auto-Message Campaigns
                     </button>
                 </div>
+
+                {/* Active filter summary */}
+                {dateRange.start && (
+                    <div className="mb-3 flex items-center gap-2">
+                        <span className="text-xs text-slate-500">
+                            Showing leads for:
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                            <Calendar className="w-3 h-3" />
+                            {dateRange.start === dateRange.end || !dateRange.end
+                                ? formatDisplayDate(dateRange.start)
+                                : `${formatDisplayDate(dateRange.start)} – ${formatDisplayDate(dateRange.end)}`}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                            ({displayLeads.length} {displayLeads.length === 1 ? 'lead' : 'leads'})
+                        </span>
+                    </div>
+                )}
 
                 {/* Leads Table */}
                 <div className="bg-white border border-border rounded-lg overflow-hidden min-h-[200px] relative">
@@ -227,7 +528,6 @@ export default function Last30DaysLeads() {
                                 <tr className="bg-muted/30 border-b border-border">
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Created Date/Time</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '9%' }}>Last Message</th>
-                                    {/* <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '7%' }}>Time</th> */}
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Name</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Phone</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '18%' }}>Campaign</th>
@@ -261,7 +561,7 @@ export default function Last30DaysLeads() {
                                                 {lead.last_message_time}
                                             </div>
                                         </td>
-                                        
+
                                         <td
                                             className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
@@ -327,7 +627,11 @@ export default function Last30DaysLeads() {
 
                     {!isLoading && !error && displayLeads.length === 0 && (
                         <div className="p-8 text-center text-muted-foreground">
-                            {searchTerm ? 'No leads match your search' : 'No leads found for the last 30 days'}
+                            {dateRange.start
+                                ? `No leads found for the selected date range`
+                                : searchTerm
+                                    ? 'No leads match your search'
+                                    : 'No leads found for the last 30 days'}
                         </div>
                     )}
                 </div>
