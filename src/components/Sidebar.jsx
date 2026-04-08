@@ -40,7 +40,7 @@ function Sidebar() {
 
   const navItems = [
     { path: '/campaigns', label: 'Campaigns', icon: Megaphone },
-    { path: '/daily-leads', label: 'Daily Leads', icon: Calendar },
+    { path: '/daily-leads', label: 'Developer Only', icon: Calendar },
     { path: '/last-30-days', label: 'Last 30 Days', icon: Calendar },
     { path: '/promoted-leads', label: 'Promoted Leads', icon: TrendingUp },
     { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
