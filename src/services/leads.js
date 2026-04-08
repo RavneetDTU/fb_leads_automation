@@ -6,6 +6,7 @@ import { api, extractTime, extractDate, capitalizeStatus } from '../utils/apiCli
 function transformLeadData(apiLead) {
     return {
         id: apiLead.meta_lead_id || apiLead.lead_id,
+        hal_leadId: apiLead.hal_leadid,
         name: apiLead.name || 'N/A',
         phone: apiLead.phone || 'N/A',
         email: apiLead.email || 'N/A',

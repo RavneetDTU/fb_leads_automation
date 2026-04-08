@@ -526,8 +526,9 @@ export default function Last30DaysLeads() {
                         <table className="w-full table-fixed">
                             <thead>
                                 <tr className="bg-muted/30 border-b border-border">
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '8%' }}>Lead ID</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Created Date/Time</th>
-                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '9%' }}>Last Message</th>
+                                    <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '10%' }}>Last Message</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Name</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '12%' }}>Phone</th>
                                     <th className="text-left px-2 py-3 text-sm font-medium text-foreground" style={{ width: '18%' }}>Campaign</th>
@@ -543,6 +544,12 @@ export default function Last30DaysLeads() {
                                         key={lead.id}
                                         className="border-b border-border last:border-0 transition-all duration-150 hover:bg-muted/20"
                                     >
+                                        <td
+                                            className="px-2 py-2.5 text-sm font-medium text-foreground cursor-pointer overflow-hidden"
+                                            onClick={() => setSelectedLead(lead)}
+                                        >
+                                            <div className="truncate" title={lead.hal_leadId}>{lead.hal_leadId}</div>
+                                        </td>
                                         <td
                                             className="px-2 py-2.5 text-sm text-muted-foreground cursor-pointer overflow-hidden"
                                             onClick={() => setSelectedLead(lead)}
