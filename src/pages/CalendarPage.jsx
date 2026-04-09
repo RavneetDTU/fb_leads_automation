@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Calendar, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { googleService } from '../services/google';
 import { calendarManager } from '../utils/calendarManager';
+import { CalendarSettingsModal } from '../components/CalendarSettingsModal';
 
 export function CalendarPage() {
     const { calendarId } = useParams();
@@ -16,6 +17,8 @@ export function CalendarPage() {
         currentDisplayDate: new Date(),
         isExpanded: true
     });
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
 
     const fetchEventsForDate = async (date) => {
         console.log('📅 Fetching events for date:', date, 'calendarId:', calendarId);
@@ -115,6 +118,19 @@ export function CalendarPage() {
         }
     };
 
+    const handleSaveSettings = async ({ openTime, closeTime }) => {
+        setIsSavingSettings(true);
+        try {
+            await googleService.saveCalendarSettings(calendarId, { openTime, closeTime });
+            // Modal handles its own success state + auto-close
+        } catch (error) {
+            console.error('Failed to save calendar settings:', error);
+            throw error; // Re-throw so modal knows it failed
+        } finally {
+            setIsSavingSettings(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <div className="px-8 py-5">
@@ -148,24 +164,39 @@ export function CalendarPage() {
                                     )}
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
+                                    {/* Store name badge */}
                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-md">
                                         <span className="text-xs font-medium text-muted-foreground">Store:</span>
                                         <span className="text-sm font-semibold text-foreground">
                                             {calendarInfo?.storeName || 'Unknown'}
                                         </span>
                                     </div>
-                                    
+
+                                    {/* Action buttons row — shown only when connected */}
                                     {googleState.isConnected && (
-                                        <button
-                                            onClick={handleDisconnect}
-                                            disabled={googleState.isLoading}
-                                            className="px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 hover:border-red-300 transition-colors disabled:opacity-50 cursor-pointer shadow-sm flex items-center justify-center w-full gap-1.5"
-                                        >
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Remove Calendar
-                                        </button>
+                                        <div className="flex items-center gap-2 w-[80%]">
+                                            {/* Calendar Settings button */}
+                                            <button
+                                                onClick={() => setShowSettingsModal(true)}
+                                                disabled={googleState.isLoading}
+                                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-foreground bg-white hover:bg-muted/60 hover:border-slate-400 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                                            >
+                                                <Settings className="w-5.5 h-5.5" />
+                                                Calendar Settings
+                                            </button>
+
+                                            {/* Remove Calendar button */}
+                                            <button
+                                                onClick={handleDisconnect}
+                                                disabled={googleState.isLoading}
+                                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 hover:border-red-300 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                                            >
+                                                <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Remove Calendar
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -314,6 +345,17 @@ export function CalendarPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Calendar Settings Modal */}
+            <CalendarSettingsModal
+                isOpen={showSettingsModal}
+                onClose={() => setShowSettingsModal(false)}
+                onSave={handleSaveSettings}
+                storeName={calendarInfo?.storeName}
+                isSaving={isSavingSettings}
+            />
         </div>
     );
 }
+
+
