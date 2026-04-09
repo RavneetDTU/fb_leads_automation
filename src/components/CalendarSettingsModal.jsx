@@ -127,9 +127,8 @@ export function CalendarSettingsModal({ isOpen, onClose, onSave, storeName, isSa
                                             setOpenTime(e.target.value);
                                             setError('');
                                         }}
-                                        className="w-full h-11 px-4 pr-10 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all cursor-pointer"
+                                        className="w-full h-11 px-4 pr-2 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all cursor-pointer"
                                     />
-                                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                                 </div>
                                 {openTime && (
                                     <p className="text-xs text-muted-foreground">Store opens at <span className="font-medium text-foreground">{formatTimeLabel(openTime)}</span></p>
@@ -150,9 +149,8 @@ export function CalendarSettingsModal({ isOpen, onClose, onSave, storeName, isSa
                                             setCloseTime(e.target.value);
                                             setError('');
                                         }}
-                                        className="w-full h-11 px-4 pr-10 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all cursor-pointer"
+                                        className="w-full h-11 px-4 pr-2 rounded-lg border border-border bg-white text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all cursor-pointer"
                                     />
-                                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                                 </div>
                                 {closeTime && (
                                     <p className="text-xs text-muted-foreground">Store closes at <span className="font-medium text-foreground">{formatTimeLabel(closeTime)}</span></p>
