@@ -279,34 +279,57 @@ export const googleService = {
         return stores;
     },
 
-    // Disconnect Calendar (Backend + LocalStorage)
-    disconnectCalendar: async (calendarId) => {
+    // Save calendar store hours settings
+    saveCalendarSettings: async (calendarId, { openTime, closeTime }) => {
         try {
-            console.log(`[GoogleService] Disconnecting calendar ${calendarId}...`);
-            const userId = localStorage.getItem('userId');
-            if (!userId) throw new Error('User not logged in');
+            console.log(`[GoogleService] Saving settings for calendar ${calendarId}:`, { openTime, closeTime });
 
-            const response = await fetch(`${BACKEND_URL}/api/auth/calendars/${calendarId}`, {
-                method: 'DELETE',
+            const response = await fetch(`${BACKEND_URL}/api/auth/calendars/${calendarId}/settings`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
+                body: JSON.stringify({ openTime, closeTime })
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.warn('Backend returned error or not found:', errorData);
+                throw new Error(errorData.message || 'Failed to save calendar settings');
+            }
+
+            const data = await response.json();
+            console.log(`[GoogleService] Calendar settings saved successfully.`);
+            return data;
+        } catch (error) {
+            console.error('[GoogleService] Failed to save calendar settings:', error);
+            throw error;
+        }
+    },
+
+    // Disconnect / Delete Calendar (Backend + LocalStorage)
+    disconnectCalendar: async (calendarId) => {
+        try {
+            console.log(`[GoogleService] Disconnecting calendar ${calendarId}...`);
+
+            const response = await fetch(`${BACKEND_URL}/api/auth/calendars/${calendarId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.warn('[GoogleService] Backend returned error on delete:', errorData);
             }
 
             // Remove from localStorage
             googleService.logout(calendarId);
-            
-            // Dispatch event so UI can update
+
+            // Dispatch event so Sidebar re-renders
             window.dispatchEvent(new Event('calendarsUpdated'));
-            
+
             console.log(`[GoogleService] Successfully disconnected calendar ${calendarId}`);
             return true;
         } catch (error) {
             console.error('[GoogleService] Failed to disconnect calendar:', error);
+            // Still clean up locally even if backend fails
             googleService.logout(calendarId);
             window.dispatchEvent(new Event('calendarsUpdated'));
             throw error;
