@@ -3,9 +3,12 @@ import { createPortal } from 'react-dom';
 import { X, Clock, Settings, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
 
-export function CalendarSettingsModal({ isOpen, onClose, onSave, storeName, isSaving }) {
-    const [openTime, setOpenTime] = useState('09:00');
-    const [closeTime, setCloseTime] = useState('18:00');
+export function CalendarSettingsModal({ isOpen, onClose, onSave, storeName, isSaving, initialOpenTime, initialCloseTime }) {
+    const DEFAULT_OPEN  = '09:00';
+    const DEFAULT_CLOSE = '18:00';
+
+    const [openTime, setOpenTime] = useState(initialOpenTime || DEFAULT_OPEN);
+    const [closeTime, setCloseTime] = useState(initialCloseTime || DEFAULT_CLOSE);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -18,6 +21,16 @@ export function CalendarSettingsModal({ isOpen, onClose, onSave, storeName, isSa
             clearTimeout(autoCloseTimer.current);
         };
     }, []);
+
+    // Every time the modal opens, reset fields to the latest saved values (or defaults)
+    useEffect(() => {
+        if (isOpen) {
+            setOpenTime(initialOpenTime || DEFAULT_OPEN);
+            setCloseTime(initialCloseTime || DEFAULT_CLOSE);
+            setError('');
+            setSuccess(false);
+        }
+    }, [isOpen, initialOpenTime, initialCloseTime]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
