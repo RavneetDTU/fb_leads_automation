@@ -9,6 +9,7 @@ import { CalendarSettingsModal } from '../components/CalendarSettingsModal';
 export function CalendarPage() {
     const { calendarId } = useParams();
     const [calendarInfo, setCalendarInfo] = useState(null);
+    const [calendarSettings, setCalendarSettings] = useState({ openTime: null, closeTime: null });
     const [googleState, setGoogleState] = useState({
         isConnected: false,
         isLoading: false,
@@ -69,6 +70,12 @@ export function CalendarPage() {
         console.log('📋 Calendar metadata:', calendar);
         setCalendarInfo(calendar);
 
+        // Restore saved settings (openTime/closeTime synced from backend by syncUserCalendars)
+        setCalendarSettings({
+            openTime: calendar?.openTime || null,
+            closeTime: calendar?.closeTime || null,
+        });
+
         // Check if THIS SPECIFIC calendar has a connected Google account
         const isConnected = googleService.checkSession(calendarId);
         console.log('🔐 Is calendar connected?', isConnected);
@@ -122,6 +129,9 @@ export function CalendarPage() {
         setIsSavingSettings(true);
         try {
             await googleService.saveCalendarSettings(calendarId, { openTime, closeTime });
+            // Update local state + localStorage so re-opening modal shows correct values
+            setCalendarSettings({ openTime, closeTime });
+            calendarManager.update(calendarId, { openTime, closeTime });
             // Modal handles its own success state + auto-close
         } catch (error) {
             console.error('Failed to save calendar settings:', error);
@@ -353,6 +363,8 @@ export function CalendarPage() {
                 onSave={handleSaveSettings}
                 storeName={calendarInfo?.storeName}
                 isSaving={isSavingSettings}
+                initialOpenTime={calendarSettings.openTime}
+                initialCloseTime={calendarSettings.closeTime}
             />
         </div>
     );

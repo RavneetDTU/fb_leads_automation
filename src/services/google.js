@@ -352,14 +352,16 @@ export const googleService = {
 
             const data = await response.json();
             if (data.success && data.stores) {
-                // 1. Update calendarManager storage
+                // 1. Update calendarManager storage — include openTime & closeTime from backend
                 const calendars = data.stores.map(store => ({
                     id: store.calendarId,
                     storeName: store.storeName,
+                    openTime: store.openTime || null,   // null when not yet configured
+                    closeTime: store.closeTime || null, // null when not yet configured
                     createdAt: store.updatedAt ? new Date(store.updatedAt).getTime() : Date.now()
                 }));
                 localStorage.setItem('mets_calendars', JSON.stringify(calendars));
-                
+
                 // Dispatch event so Sidebar re-renders with new calendars
                 window.dispatchEvent(new Event('calendarsUpdated'));
 
