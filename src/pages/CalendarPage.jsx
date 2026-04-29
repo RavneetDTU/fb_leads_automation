@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Calendar, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { googleService } from '../services/google';
 import { calendarManager } from '../utils/calendarManager';
-import { CalendarSettingsModal } from '../components/CalendarSettingsModal';
 
 export function CalendarPage() {
     const { calendarId } = useParams();
@@ -20,6 +19,7 @@ export function CalendarPage() {
     });
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const navigate = useNavigate();
 
     const fetchEventsForDate = async (date) => {
         console.log('📅 Fetching events for date:', date, 'calendarId:', calendarId);
@@ -187,7 +187,7 @@ export function CalendarPage() {
                                         <div className="flex items-center gap-2 w-[80%]">
                                             {/* Calendar Settings button */}
                                             <button
-                                                onClick={() => setShowSettingsModal(true)}
+                                                onClick={() => navigate(`/calendar/${calendarId}/settings`)}
                                                 disabled={googleState.isLoading}
                                                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-foreground bg-white hover:bg-muted/60 hover:border-slate-400 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                                             >
@@ -355,19 +355,6 @@ export function CalendarPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Calendar Settings Modal */}
-            <CalendarSettingsModal
-                isOpen={showSettingsModal}
-                onClose={() => setShowSettingsModal(false)}
-                onSave={handleSaveSettings}
-                storeName={calendarInfo?.storeName}
-                isSaving={isSavingSettings}
-                initialOpenTime={calendarSettings.openTime}
-                initialCloseTime={calendarSettings.closeTime}
-            />
         </div>
     );
 }
-
-

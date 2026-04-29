@@ -18,6 +18,7 @@ import Last30DaysLeads from './pages/Last30DaysLeads'
 import PromotedLeads from './pages/PromotedLeads'
 import Whatsapp from './pages/Whatsapp'
 import { CalendarPage } from './pages/CalendarPage'
+import { CalendarSettings } from './pages/CalendarSettings'
 // import BookCalendarEvent from './pages/BookCalendarEvent' // Moved into LeadModal tab
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
           <Route path="/promoted-leads" element={<PromotedLeads />} />
           <Route path="/whatsapp" element={<Whatsapp />} />
           <Route path="/calendar/:calendarId" element={<CalendarPage />} />
+          <Route path="/calendar/:calendarId/settings" element={<CalendarSettings />} />
           <Route path="/settings" element={<Settings />} />
           {/* <Route path="/book-calendar-event" element={<BookCalendarEvent />} /> */} {/* Moved into LeadModal */}
         </Route>
