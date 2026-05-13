@@ -1,24 +1,23 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
 // Layouts
-import { PublicLayout } from './layouts/PublicLayout'
 import { DashboardLayout } from './layouts/DashboardLayout'
+import { PublicLayout } from './layouts/PublicLayout'
 
 // Pages
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import LandingPageRoute from './pages/LandingPage'
 import PrivacyPolicy from './components/landingpage/privacy-policy'
 import TermsOfService from './components/landingpage/terms-of-service'
-import { Campaigns } from './pages/Campaigns'
-import { Leads } from './pages/Leads'
-import { Settings } from './pages/Setting' // Check if Setting.jsx exports 'Settings' named or default. It exported named 'Settings'.
-import DailyLeads from './pages/DailyLeads'
-import Last30DaysLeads from './pages/Last30DaysLeads'
-import PromotedLeads from './pages/PromotedLeads'
-import Whatsapp from './pages/Whatsapp'
 import { CalendarPage } from './pages/CalendarPage'
 import { CalendarSettings } from './pages/CalendarSettings'
+import { Campaigns } from './pages/Campaigns'
+import DailyLeads from './pages/DailyLeads'
+import Last30DaysLeads from './pages/Last30DaysLeads'
+import { Leads } from './pages/Leads'
+import Login from './pages/Login'
+import PromotedLeads from './pages/PromotedLeads'
+import { Settings } from './pages/Setting'; // Check if Setting.jsx exports 'Settings' named or default. It exported named 'Settings'.
+import Signup from './pages/Signup'
+import Whatsapp from './pages/Whatsapp'
 // import BookCalendarEvent from './pages/BookCalendarEvent' // Moved into LeadModal tab
 
 function App() {
@@ -27,7 +26,9 @@ function App() {
       <Routes>
         {/* Public Routes (Login/Signup) */}
         <Route element={<PublicLayout />}>
-          <Route path="/" element={<LandingPageRoute />} />
+          {/* Redirect root "/" to "/login" */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* <Route path="/" element={<LandingPageRoute />} /> */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           {/* <Route path="/landing" element={<LandingPageRoute />} /> */}
