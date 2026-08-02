@@ -17,13 +17,13 @@ function StatCard({ label, value, icon: Icon, color }: {
   label: string; value: string | number; icon: React.ElementType; color: string;
 }) {
   return (
-    <div className="card p-5 flex items-center gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-        <Icon size={20} className="text-white" />
+    <div className="card p-5 flex items-center gap-4 hover:border-slate-300">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-apple-sm ${color}`}>
+        <Icon size={18} className="text-white" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
-        <p className="text-xs text-slate-500">{label}</p>
+        <p className="text-2xl font-semibold text-slate-900 leading-none">{value}</p>
+        <p className="text-xs text-slate-500 font-medium mt-1">{label}</p>
       </div>
     </div>
   );
@@ -69,11 +69,11 @@ export function CampaignsPage() {
   const campaigns = campaignsQuery.data ?? [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-800">Campaigns</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Meta ad campaigns connected to your WhatsApp automation.</p>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Campaigns</h1>
+        <p className="text-sm text-slate-500 mt-1">Meta ad campaigns connected to your WhatsApp automation.</p>
       </div>
 
       {/* Stat row */}
@@ -86,25 +86,25 @@ export function CampaignsPage() {
               label="Campaigns"
               value={summaryQuery.data?.campaign_count ?? 'N/A'}
               icon={LayoutGrid}
-              color="bg-indigo-500"
+              color="bg-indigo-600"
             />
             <StatCard
               label="Total Leads"
               value={summaryQuery.data?.total_leads ?? 'N/A'}
               icon={Users}
-              color="bg-blue-500"
+              color="bg-blue-600"
             />
             <StatCard
               label="WhatsApp Messages Sent"
               value="N/A"
               icon={FileText}
-              color="bg-brand-500"
+              color="bg-emerald-600"
             />
             <StatCard
               label="Converted Leads"
               value={summaryQuery.data?.converted_leads ?? 'N/A'}
               icon={ChevronRight}
-              color="bg-green-500"
+              color="bg-teal-600"
             />
           </>
         )}
@@ -161,7 +161,7 @@ function CampaignCard({
 }) {
   return (
     <div
-      className="card p-5 flex flex-col gap-4 cursor-pointer hover:shadow-md transition-shadow group"
+      className="card p-5 flex flex-col gap-4 cursor-pointer hover:border-slate-300/90 hover:shadow-md transition-all duration-150 group"
       onClick={onNavigate}
       role="button"
       tabIndex={0}
@@ -170,29 +170,29 @@ function CampaignCard({
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-slate-800 text-sm leading-snug truncate flex-1 group-hover:text-brand-600 transition-colors">
+        <h3 className="font-semibold text-slate-900 text-sm leading-snug truncate flex-1 group-hover:text-emerald-700 transition-colors">
           {campaign.name}
         </h3>
         <ActiveBadge active={campaign.is_active} />
       </div>
 
       {/* Source */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-        <Globe2 size={13} className="text-blue-500" />
-        Facebook
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+        <Globe2 size={14} className="text-blue-500" />
+        Facebook Ads
       </div>
 
       {/* Template badge */}
       <button
         onClick={(e) => { e.stopPropagation(); onTemplateClick(); }}
-        className={`w-full text-left px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
+        className={`w-full text-left px-3.5 py-2.5 rounded-lg border text-xs font-medium transition-all duration-150 ${
           campaign.assigned_template_name
-            ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-            : 'border-dashed border-slate-300 text-slate-400 hover:border-slate-400 hover:text-slate-600'
+            ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100/70'
+            : 'border-dashed border-slate-300 text-slate-500 hover:border-slate-400 hover:text-slate-700 bg-slate-50/50'
         }`}
         aria-label="Select template"
       >
-        {campaign.assigned_template_name ? `📄 ${campaign.assigned_template_name}` : '+ No Template Selected'}
+        {campaign.assigned_template_name ? `📄 ${campaign.assigned_template_name}` : '+ Assign Template'}
       </button>
 
       {/* Counts */}
@@ -203,23 +203,23 @@ function CampaignCard({
           { label: 'Contacted', value: 'N/A' },
           { label: 'Converted', value: 'N/A' },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-slate-50 rounded-lg py-2">
-            <p className="font-bold text-slate-800 text-sm">{value}</p>
-            <p className="text-xs text-slate-400">{label}</p>
+          <div key={label} className="bg-slate-50/80 rounded-lg py-2 border border-slate-100">
+            <p className="font-semibold text-slate-900 text-sm">{value}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-        <span className="text-xs text-slate-400">
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        <span className="text-[11px] text-slate-400">
           Created {format(new Date(campaign.created_at), 'MMM d, yyyy')}
         </span>
         <div
           className="flex items-center gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="text-xs text-slate-500">Auto</span>
+          <span className="text-xs text-slate-500 font-medium">Auto</span>
           <Toggle
             enabled={campaign.is_active}
             onChange={onToggle}

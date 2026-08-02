@@ -12,14 +12,32 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const STORAGE_KEY = 'hal_admin_token';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
 
   function setToken(t: string) {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, t);
+    } catch {
+      // Ignore sessionStorage errors (e.g. private browsing storage limits)
+    }
     setTokenState(t);
   }
 
   function clearToken() {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore sessionStorage errors
+    }
     setTokenState(null);
     // Force full page reload to clear all React Query cache on logout
     window.location.href = '/login';

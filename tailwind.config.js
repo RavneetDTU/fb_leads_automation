@@ -11,12 +11,12 @@ export default {
       },
       colors: {
         brand: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          500: '#25D366',
-          600: '#1db954',
-          700: '#15a043',
-          800: '#0f7a33',
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065f46',
         },
         sidebar: {
           bg: '#0f172a',
@@ -24,8 +24,13 @@ export default {
           active: '#1e293b',
           border: '#1e293b',
           text: '#94a3b8',
-          'text-active': '#f1f5f9',
+          'text-active': '#ffffff',
         },
+      },
+      boxShadow: {
+        'apple-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        'apple-card': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02)',
+        'apple-popover': '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
       },
       animation: {
         'slide-in': 'slideIn 0.2s ease-out',

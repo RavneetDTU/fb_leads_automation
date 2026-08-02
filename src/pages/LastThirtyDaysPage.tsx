@@ -23,13 +23,13 @@ function StatCard({ label, value, color, icon: Icon }: {
   label: string; value: number | string; color: string; icon: React.ElementType;
 }) {
   return (
-    <div className="card p-4 flex items-center gap-3">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+    <div className="card p-4 flex items-center gap-3.5 hover:border-slate-300">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-apple-sm ${color}`}>
         <Icon size={16} className="text-white" />
       </div>
       <div>
-        <p className="text-xl font-bold text-slate-800 leading-none">{value}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+        <p className="text-xl font-semibold text-slate-900 leading-none">{value}</p>
+        <p className="text-xs text-slate-500 font-medium mt-1">{label}</p>
       </div>
     </div>
   );
@@ -101,12 +101,12 @@ export function LastThirtyDaysPage() {
   );
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Last 30 Days</h1>
-          <p className="text-sm text-slate-500 mt-0.5">All leads from the past 30 days. Auto-refreshes every 10s.</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Last 30 Days</h1>
+          <p className="text-sm text-slate-500 mt-1">All leads from the past 30 days. Auto-refreshes every 10s.</p>
         </div>
         <button
           onClick={() => navigate('/campaigns')}
@@ -122,11 +122,11 @@ export function LastThirtyDaysPage() {
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Total Leads" value={summaryQuery.data?.total ?? 0} color="bg-slate-500" icon={Users} />
-            <StatCard label="New" value={summaryQuery.data?.new ?? 0} color="bg-blue-500" icon={Users} />
-            <StatCard label="Template Sent" value={summaryQuery.data?.template_sent ?? 0} color="bg-indigo-500" icon={Send} />
-            <StatCard label="Unread" value={summaryQuery.data?.unread ?? 0} color="bg-red-500" icon={Eye} />
-            <StatCard label="Responded" value={summaryQuery.data?.responded ?? 0} color="bg-green-500" icon={CheckCircle} />
+            <StatCard label="Total Leads" value={summaryQuery.data?.total ?? 0} color="bg-slate-700" icon={Users} />
+            <StatCard label="New" value={summaryQuery.data?.new ?? 0} color="bg-blue-600" icon={Users} />
+            <StatCard label="Template Sent" value={summaryQuery.data?.template_sent ?? 0} color="bg-indigo-600" icon={Send} />
+            <StatCard label="Unread" value={summaryQuery.data?.unread ?? 0} color="bg-rose-600" icon={Eye} />
+            <StatCard label="Responded" value={summaryQuery.data?.responded ?? 0} color="bg-emerald-600" icon={CheckCircle} />
           </>
         )}
       </div>
@@ -134,7 +134,7 @@ export function LastThirtyDaysPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
             placeholder="Search name, phone, campaign…"
@@ -169,10 +169,10 @@ export function LastThirtyDaysPage() {
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50/80 border-b border-slate-200/80">
               <tr>
                 {['Lead ID', 'Created', 'Name', 'Phone', 'Campaign', 'Status', 'AI Mode', 'Action'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="text-left px-4 py-3.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -193,18 +193,18 @@ export function LastThirtyDaysPage() {
                 filtered.map((lead) => (
                   <tr
                     key={lead.id}
-                    className="hover:bg-slate-50 cursor-pointer transition-colors"
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors duration-150"
                     onClick={() => setSelectedLead(lead.id)}
                   >
-                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{lead.id.slice(0, 8)}…</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-slate-400 font-mono text-xs">{lead.id.slice(0, 8)}…</td>
+                    <td className="px-4 py-3.5 text-slate-500 text-xs whitespace-nowrap">
                       {format(new Date(lead.created_at), 'MMM d, HH:mm')}
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{lead.full_name}</td>
-                    <td className="px-4 py-3 text-slate-600">{lead.phone}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs max-w-[140px] truncate">{lead.campaign_name ?? '—'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={lead.status} /></td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3.5 font-medium text-slate-900 whitespace-nowrap">{lead.full_name}</td>
+                    <td className="px-4 py-3.5 text-slate-600 text-xs font-mono">{lead.phone}</td>
+                    <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[140px] truncate">{lead.campaign_name ?? '—'}</td>
+                    <td className="px-4 py-3.5"><StatusBadge status={lead.status} /></td>
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <Toggle
                         enabled={lead.ai_mode}
                         onChange={(val) => aiMutation.mutate({ leadId: lead.id, ai_mode: val })}
@@ -212,11 +212,11 @@ export function LastThirtyDaysPage() {
                         label="Toggle AI mode"
                       />
                     </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <button
                         disabled
                         title={`Go to ${lead.campaign_name ?? 'campaign'} → Select Template to send to this and any other pending leads.`}
-                        className="btn-secondary text-xs py-1 opacity-40 cursor-not-allowed"
+                        className="btn-secondary text-xs py-1 px-2.5 opacity-40 cursor-not-allowed"
                       >
                         <Send size={12} />
                         Send
