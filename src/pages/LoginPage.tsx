@@ -24,20 +24,21 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-forest-dark flex items-center justify-center p-4 select-none">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 select-none">
       <div className="w-full max-w-sm">
         {/* Logo Header */}
         <div className="flex justify-center mb-8">
-          <Logo theme="dark" size="lg" />
+          <Logo theme="light" size="lg" />
         </div>
 
-        <div className="bg-forest/90 backdrop-blur-md border border-forest-hover rounded-2xl p-7 shadow-soft">
-          <h2 className="text-white font-semibold text-lg mb-1 tracking-tight">Sign in to Jarvis AI</h2>
-          <p className="text-neutral-divider/80 text-xs mb-6">Enter your admin security token to continue.</p>
+        {/* Card Container */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-8 shadow-elevated">
+          <h2 className="text-slate-900 font-bold text-xl mb-1 tracking-tight">Sign in to Jarvis AI</h2>
+          <p className="text-slate-500 text-xs mb-6 font-medium">Enter your admin security token to access dashboard.</p>
 
           <form onSubmit={handleSubmit} noValidate>
-            <div className="mb-5">
-              <label htmlFor="admin-token" className="block text-xs font-medium text-sage mb-1.5">
+            <div className="mb-6">
+              <label htmlFor="admin-token" className="block text-xs font-semibold text-slate-700 mb-2">
                 Admin Token
               </label>
               <div className="relative">
@@ -48,30 +49,30 @@ export function LoginPage() {
                   onChange={(e) => setValue(e.target.value)}
                   placeholder="jarvis-admin-secret-token-…"
                   autoComplete="current-password"
-                  className="w-full rounded-lg border border-forest-hover bg-forest-dark/80 px-3.5 py-2.5 text-sm text-white
-                             placeholder:text-neutral-muted pr-10
-                             focus:outline-none focus:ring-2 focus:ring-sage/30 focus:border-sage transition-all duration-150"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900
+                             placeholder:text-slate-400 pr-11
+                             focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150"
                 />
                 <button
                   type="button"
                   onClick={() => setShow((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sage hover:text-white transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
                   aria-label={show ? 'Hide token' : 'Show token'}
                 >
-                  {show ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {show ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {error && <p className="mt-1.5 text-xs text-rose-400 font-medium">{error}</p>}
+              {error && <p className="mt-2 text-xs text-rose-600 font-medium">{error}</p>}
             </div>
 
-            <button type="submit" className="btn-primary w-full justify-center py-2.5 shadow-soft">
+            <button type="submit" className="btn-primary w-full justify-center py-3 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-md">
               Access Dashboard
             </button>
           </form>
         </div>
 
-        <p className="text-center text-sage/70 text-xs mt-6">
-          Jarvis AI — Enterprise Lead Automation
+        <p className="text-center text-slate-400 text-xs mt-8 font-medium">
+          Jarvis AI — Enterprise Lead Automation Platform
         </p>
       </div>
     </div>
