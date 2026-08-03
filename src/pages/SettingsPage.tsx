@@ -11,7 +11,7 @@ import { ErrorState } from '../components/ui/States';
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="card p-6 space-y-4">
-      <h2 className="font-semibold text-slate-900 text-sm border-b border-slate-100 pb-3 tracking-tight">{title}</h2>
+      <h2 className="font-semibold text-forest text-sm border-b border-neutral-border pb-3 tracking-tight">{title}</h2>
       {children}
     </div>
   );
@@ -32,7 +32,7 @@ function Field({
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         placeholder={placeholder}
         readOnly={readOnly}
-        className={`input ${readOnly ? 'bg-slate-50/70 text-slate-500 font-mono text-xs cursor-default' : ''}`}
+        className={`input ${readOnly ? 'bg-cream-light text-neutral-muted font-mono text-xs cursor-default' : ''}`}
       />
     </div>
   );
@@ -67,7 +67,7 @@ export function SettingsPage() {
         smtp_host: data.smtp_host,
         smtp_port: data.smtp_port,
         smtp_user: data.smtp_user ?? '',
-        smtp_from_name: data.smtp_from_name,
+        smtp_from_name: data.smtp_from_name ?? 'Jarvis AI Bot',
       });
     }
   }, [data]);
@@ -119,8 +119,8 @@ export function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Platform Settings</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage API keys, automation config, and notifications.</p>
+          <h1 className="text-xl font-bold text-forest tracking-tight">Platform Settings</h1>
+          <p className="text-sm text-neutral-secondary mt-1">Manage API keys, automation config, and notifications for Jarvis AI.</p>
         </div>
         <button
           onClick={handleSave}
@@ -132,15 +132,15 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {/* Meta token expiry banner — prominent warning */}
+      {/* Meta token expiry banner — warning */}
       {tokenStatus?.warning && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200/80 rounded-xl p-4 animate-fade-in shadow-apple-sm">
-          <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 bg-terracotta-light border border-terracotta/40 rounded-xl p-4 animate-fade-in shadow-apple-sm">
+          <AlertTriangle size={20} className="text-terracotta shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-900 text-sm">
+            <p className="font-semibold text-terracotta-dark text-sm">
               ⚠️ Your Meta access token expires in {tokenStatus.days_remaining} days
             </p>
-            <p className="text-amber-700 text-xs mt-0.5">
+            <p className="text-terracotta-dark/80 text-xs mt-0.5">
               Update your token below to avoid interrupting lead ingestion. The background poller will silently stop working on expiry.
             </p>
           </div>
@@ -153,16 +153,16 @@ export function SettingsPage() {
           <Field label="App ID" value={form.meta_app_id ?? ''} onChange={(v) => setField('meta_app_id', v)} />
           <div>
             <label className="label">Access Token (masked)</label>
-            <input type="text" value={data?.meta_access_token ?? ''} readOnly className="input bg-slate-50/70 text-slate-500 font-mono text-xs cursor-default" />
-            <p className="text-[11px] text-slate-400 mt-1">Enter new value below to update</p>
+            <input type="text" value={data?.meta_access_token ?? ''} readOnly className="input bg-cream-light text-neutral-muted font-mono text-xs cursor-default" />
+            <p className="text-[11px] text-neutral-muted mt-1">Enter new value below to update</p>
           </div>
           <Field label="New Access Token" type="password" value={''} onChange={(v) => setField('meta_access_token', v || null)} placeholder="Paste new token to update" />
           <Field label="Ad Account ID" value={form.meta_ad_account_id ?? ''} onChange={(v) => setField('meta_ad_account_id', v)} />
           <Field label="App Secret (write-only)" type="password" value={''} onChange={(v) => setField('meta_app_secret', v || null)} placeholder="Enter to update" />
           <Field label="Token Expires At (ISO 8601)" value={''} onChange={(v) => setField('meta_token_expires_at', v || null)} placeholder="2026-10-01T12:00:00Z" />
           {tokenStatus && (
-            <div className="bg-slate-50/80 rounded-lg p-3 text-xs text-slate-600 border border-slate-100">
-              <span className="font-medium text-slate-700">Token Status:</span>{' '}
+            <div className="bg-cream-light rounded-lg p-3 text-xs text-neutral-body border border-neutral-border">
+              <span className="font-medium text-forest">Token Status:</span>{' '}
               {tokenStatus.days_remaining !== null
                 ? `Expires in ${tokenStatus.days_remaining} days (${tokenStatus.expires_at?.split('T')[0]})`
                 : 'Expiry unknown'}
@@ -175,7 +175,7 @@ export function SettingsPage() {
           <Field label="API Endpoint" value={form.wati_api_endpoint ?? ''} onChange={(v) => setField('wati_api_endpoint', v)} />
           <div>
             <label className="label">Access Token (masked)</label>
-            <input type="text" value={data?.wati_access_token ?? ''} readOnly className="input bg-slate-50/70 text-slate-500 font-mono text-xs cursor-default" />
+            <input type="text" value={data?.wati_access_token ?? ''} readOnly className="input bg-cream-light text-neutral-muted font-mono text-xs cursor-default" />
           </div>
           <Field label="New Access Token" type="password" value={''} onChange={(v) => setField('wati_access_token', v || null)} placeholder="Paste new token to update" />
           <Field label="Instance ID" value={form.wati_instance_id ?? ''} onChange={(v) => setField('wati_instance_id', v)} />
@@ -185,7 +185,7 @@ export function SettingsPage() {
         <SettingsSection title="OpenAI Configuration">
           <div>
             <label className="label">API Key (masked)</label>
-            <input type="text" value={data?.openai_api_key ?? ''} readOnly className="input bg-slate-50/70 text-slate-500 font-mono text-xs cursor-default" />
+            <input type="text" value={data?.openai_api_key ?? ''} readOnly className="input bg-cream-light text-neutral-muted font-mono text-xs cursor-default" />
           </div>
           <Field label="New API Key" type="password" value={''} onChange={(v) => setField('openai_api_key', v || null)} placeholder="sk-… (enter to update)" />
           <Field label="Model (for conversations)" value={form.openai_model ?? ''} onChange={(v) => setField('openai_model', v)} placeholder="gpt-4o" />
@@ -227,7 +227,7 @@ export function SettingsPage() {
           </div>
           <Field label="SMTP User" type="email" value={form.smtp_user ?? ''} onChange={(v) => setField('smtp_user', v)} />
           <Field label="SMTP Password (write-only)" type="password" value={''} onChange={(v) => setField('smtp_password', v || null)} placeholder="Enter to update" />
-          <Field label="From Name" value={form.smtp_from_name ?? ''} onChange={(v) => setField('smtp_from_name', v)} />
+          <Field label="From Name" value={form.smtp_from_name ?? 'Jarvis AI Bot'} onChange={(v) => setField('smtp_from_name', v)} />
         </SettingsSection>
       </div>
     </div>

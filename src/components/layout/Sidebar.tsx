@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus, Zap } from 'lucide-react';
+import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Logo } from '../ui/Logo';
 
 const navItems = [
   { to: '/campaigns', icon: LayoutGrid, label: 'Campaigns' },
@@ -13,21 +14,15 @@ export function Sidebar() {
   const { clearToken } = useAuth();
 
   return (
-    <aside className="flex flex-col w-60 shrink-0 h-screen bg-slate-900 text-slate-400 sticky top-0 overflow-y-auto border-r border-slate-800/60 select-none">
-      {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800/60">
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0 shadow-apple-sm">
-          <Zap size={16} className="text-white" />
-        </div>
-        <div>
-          <p className="text-white text-sm font-semibold leading-tight tracking-tight">HAL Leads</p>
-          <p className="text-slate-400 text-[11px] font-normal">Admin Dashboard</p>
-        </div>
+    <aside className="flex flex-col w-60 shrink-0 h-screen bg-forest text-neutral-divider sticky top-0 overflow-y-auto border-r border-forest-hover select-none shadow-soft">
+      {/* Brand Header */}
+      <div className="px-5 py-5 border-b border-forest-hover/80">
+        <Logo theme="dark" size="sm" />
       </div>
 
       {/* Main nav */}
       <nav className="flex-1 px-3 py-5 space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">Navigation</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-sage px-3 mb-2">Navigation</p>
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -35,14 +30,14 @@ export function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? 'bg-slate-800 text-white font-semibold shadow-apple-sm'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  ? 'bg-forest-hover text-white font-semibold shadow-apple-sm border-l-2 border-terracotta'
+                  : 'text-neutral-divider/80 hover:bg-forest-hover/50 hover:text-white'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={18} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
+                <Icon size={18} className={isActive ? 'text-terracotta' : 'text-sage'} />
                 {label}
               </>
             )}
@@ -50,21 +45,21 @@ export function Sidebar() {
         ))}
 
         {/* Calendar section */}
-        <div className="pt-5 mt-4 border-t border-slate-800/60">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">Calendar</p>
+        <div className="pt-5 mt-4 border-t border-forest-hover/80">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-sage px-3 mb-2">Calendar</p>
           <NavLink
             to="/settings/calendars"
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? 'bg-slate-800 text-white font-semibold shadow-apple-sm'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  ? 'bg-forest-hover text-white font-semibold shadow-apple-sm border-l-2 border-terracotta'
+                  : 'text-neutral-divider/80 hover:bg-forest-hover/50 hover:text-white'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <CalendarPlus size={18} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
+                <CalendarPlus size={18} className={isActive ? 'text-terracotta' : 'text-sage'} />
                 Add Calendar
               </>
             )}
@@ -73,12 +68,12 @@ export function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-slate-800/60">
+      <div className="px-3 py-4 border-t border-forest-hover/80">
         <button
           onClick={clearToken}
-          className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-all duration-150"
+          className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-divider/70 hover:bg-forest-hover/50 hover:text-white transition-all duration-150"
         >
-          <span className="text-slate-500 font-mono">→</span>
+          <span className="text-sage font-mono">→</span>
           Sign out
         </button>
       </div>

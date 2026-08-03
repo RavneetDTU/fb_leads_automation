@@ -22,15 +22,15 @@ export function Toggle({ enabled, onChange, disabled = false, label, size = 'md'
       className={`
         relative inline-flex shrink-0 items-center rounded-full border-2 border-transparent
         transition-colors duration-200 ease-in-out cursor-pointer
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
         ${trackSize}
-        ${enabled ? 'bg-emerald-600' : 'bg-slate-300'}
+        ${enabled ? 'bg-terracotta' : 'bg-neutral-divider'}
       `}
     >
       <span
         className={`
-          inline-block rounded-full bg-white shadow transition-transform duration-200 ease-in-out
+          inline-block rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out
           ${thumbSize}
           ${enabled ? thumbTranslate : 'translate-x-0'}
         `}
