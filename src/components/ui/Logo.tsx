@@ -35,7 +35,7 @@ export function Logo({
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       {/* Icon Badge */}
       <div
-        className={`${iconSizes[size]} rounded-xl bg-gradient-to-br from-[#7C947C] to-[#1E3B2F] flex items-center justify-center font-bold text-white shadow-sm shrink-0 border border-white/10`}
+        className={`${iconSizes[size]} rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center font-bold text-white shadow-md shrink-0 border border-white/20`}
       >
         <svg
           viewBox="0 0 24 24"
@@ -56,18 +56,18 @@ export function Logo({
           <div className="flex items-center gap-1.5 leading-tight">
             <span
               className={`${titleSizes[size]} font-bold tracking-tight ${
-                isDark ? 'text-white' : 'text-[#1E3B2F]'
+                isDark ? 'text-white' : 'text-slate-900'
               }`}
             >
               Jarvis
             </span>
-            <span className={`${titleSizes[size]} font-semibold text-[#C97B5A]`}>
+            <span className={`${titleSizes[size]} font-bold text-indigo-600`}>
               AI
             </span>
           </div>
           <span
             className={`${subtitleSizes[size]} font-medium ${
-              isDark ? 'text-[#7C947C]' : 'text-[#6B6B6B]'
+              isDark ? 'text-slate-400' : 'text-slate-500'
             }`}
           >
             Automation Platform

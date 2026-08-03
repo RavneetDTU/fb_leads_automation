@@ -4,12 +4,22 @@ interface ToggleProps {
   disabled?: boolean;
   label?: string;
   size?: 'sm' | 'md';
+  color?: 'indigo' | 'emerald';
 }
 
-export function Toggle({ enabled, onChange, disabled = false, label, size = 'md' }: ToggleProps) {
+export function Toggle({
+  enabled,
+  onChange,
+  disabled = false,
+  label,
+  size = 'md',
+  color = 'indigo',
+}: ToggleProps) {
   const trackSize = size === 'sm' ? 'w-8 h-4' : 'w-10 h-5';
   const thumbSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
   const thumbTranslate = size === 'sm' ? 'translate-x-4' : 'translate-x-5';
+
+  const activeColorClass = color === 'emerald' ? 'bg-emerald-500' : 'bg-indigo-600';
 
   return (
     <button
@@ -22,15 +32,15 @@ export function Toggle({ enabled, onChange, disabled = false, label, size = 'md'
       className={`
         relative inline-flex shrink-0 items-center rounded-full border-2 border-transparent
         transition-colors duration-200 ease-in-out cursor-pointer
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
         ${trackSize}
-        ${enabled ? 'bg-terracotta' : 'bg-neutral-divider'}
+        ${enabled ? activeColorClass : 'bg-slate-200'}
       `}
     >
       <span
         className={`
-          inline-block rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out
+          inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out
           ${thumbSize}
           ${enabled ? thumbTranslate : 'translate-x-0'}
         `}

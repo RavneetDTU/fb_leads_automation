@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Search, Send, Users, Eye, CheckCircle } from 'lucide-react';
+import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, patch } from '../lib/api';
@@ -19,17 +19,17 @@ const POLL_MS = 10_000;
 
 const STATUS_OPTIONS: LeadStatus[] = ['NEW', 'TEMPLATE_SENT', 'UNREAD', 'WAITING_FOR_REPLY', 'BOOKED', 'HANDED_OFF'];
 
-function StatCard({ label, value, color, icon: Icon }: {
+function MetricStat({ label, value, color, icon: Icon }: {
   label: string; value: number | string; color: string; icon: React.ElementType;
 }) {
   return (
-    <div className="card p-4 flex items-center gap-3.5 hover:border-sage/40">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-apple-sm ${color}`}>
+    <div className="card p-4 flex items-center gap-3.5">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${color}`}>
         <Icon size={16} className="text-white" />
       </div>
       <div>
-        <p className="text-xl font-bold text-forest leading-none">{value}</p>
-        <p className="text-xs text-neutral-secondary font-medium mt-1">{label}</p>
+        <p className="text-lg font-bold text-slate-900 leading-none">{value}</p>
+        <p className="text-xs text-slate-500 font-medium mt-1">{label}</p>
       </div>
     </div>
   );
@@ -101,126 +101,150 @@ export function LastThirtyDaysPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-5">
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-xl font-bold text-forest tracking-tight">Last 30 Days</h1>
-          <p className="text-sm text-neutral-secondary mt-1">All leads managed by Jarvis AI from the past 30 days.</p>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+            <span>Dashboard</span>
+            <span>/</span>
+            <span className="text-indigo-600">Lead Logs</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Lead Activity & Logs</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Real-time status tracking for all inbound Meta ad leads from the last 30 days.</p>
         </div>
         <button
-          onClick={() => navigate('/campaigns')}
-          className="btn-secondary"
+          onClick={() => navigate('/whatsapp')}
+          className="btn-primary"
         >
-          Auto-Message Campaigns →
+          <MessageSquare size={16} />
+          Open WhatsApp Inbox →
         </button>
       </div>
 
-      {/* Stat row */}
+      {/* Stat Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {summaryQuery.isLoading ? (
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Total Leads" value={summaryQuery.data?.total ?? 0} color="bg-forest" icon={Users} />
-            <StatCard label="New" value={summaryQuery.data?.new ?? 0} color="bg-sage" icon={Users} />
-            <StatCard label="Template Sent" value={summaryQuery.data?.template_sent ?? 0} color="bg-forest-hover" icon={Send} />
-            <StatCard label="Unread" value={summaryQuery.data?.unread ?? 0} color="bg-terracotta" icon={Eye} />
-            <StatCard label="Responded" value={summaryQuery.data?.responded ?? 0} color="bg-[#2E6A47]" icon={CheckCircle} />
+            <MetricStat label="Total Inbound" value={summaryQuery.data?.total ?? 0} color="bg-indigo-600" icon={Users} />
+            <MetricStat label="New Leads" value={summaryQuery.data?.new ?? 0} color="bg-cyan-600" icon={Users} />
+            <MetricStat label="Template Sent" value={summaryQuery.data?.template_sent ?? 0} color="bg-slate-700" icon={Send} />
+            <MetricStat label="Unread" value={summaryQuery.data?.unread ?? 0} color="bg-amber-600" icon={Eye} />
+            <MetricStat label="Responded" value={summaryQuery.data?.responded ?? 0} color="bg-emerald-600" icon={CheckCircle} />
           </>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-muted" />
+      {/* Search & Filter Bar */}
+      <div className="card p-4 flex flex-col md:flex-row gap-3 items-center">
+        <div className="relative flex-1 w-full">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
-            placeholder="Search name, phone, campaign…"
+            placeholder="Search lead name, phone number, or campaign..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input pl-9"
+            className="input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
           />
         </div>
-        <select
-          value={campaignFilter}
-          onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); }}
-          className="select w-auto min-w-[180px]"
-          aria-label="Filter by campaign"
-        >
-          <option value="">All Campaigns</option>
-          {(campaignsQuery.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); }}
-          className="select w-auto min-w-[160px]"
-          aria-label="Filter by status"
-        >
-          <option value="">All Statuses</option>
-          {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+          <select
+            value={campaignFilter}
+            onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); }}
+            className="select min-w-[180px] bg-slate-50 border-slate-200"
+            aria-label="Filter by campaign"
+          >
+            <option value="">All Campaigns</option>
+            {(campaignsQuery.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); }}
+            className="select min-w-[170px] bg-slate-50 border-slate-200"
+            aria-label="Filter by status"
+          >
+            <option value="">All Statuses</option>
+            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Clean White Table Container */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-cream-light border-b border-neutral-border">
+            <thead className="bg-slate-50/80 border-b border-slate-200/80">
               <tr>
-                {['Lead ID', 'Created', 'Name', 'Phone', 'Campaign', 'Status', 'AI Mode', 'Action'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3.5 text-[11px] font-semibold text-neutral-secondary uppercase tracking-wider whitespace-nowrap">
+                {['Lead ID', 'Created', 'Contact Name & Phone', 'Campaign', 'Status', 'AI Mode', 'Action'].map((h) => (
+                  <th key={h} className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-border/60">
+            <tbody className="divide-y divide-slate-100">
               {leadsQuery.isLoading ? (
-                <tr><td colSpan={8}><TableSkeleton rows={8} cols={8} /></td></tr>
+                <tr><td colSpan={7}><TableSkeleton rows={8} cols={7} /></td></tr>
               ) : leadsQuery.error ? (
-                <tr><td colSpan={8}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
+                <tr><td colSpan={7}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
-                    <EmptyState title="No leads found" description="Try adjusting your filters or date range." />
+                  <td colSpan={7}>
+                    <EmptyState title="No leads matched filters" description="Try clearing your search query or dropdown selections." />
                   </td>
                 </tr>
               ) : (
                 filtered.map((lead) => (
                   <tr
                     key={lead.id}
-                    className="hover:bg-cream-light/60 cursor-pointer transition-colors duration-150"
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors duration-150"
                     onClick={() => setSelectedLead(lead.id)}
                   >
-                    <td className="px-4 py-3.5 text-neutral-muted font-mono text-xs">{lead.id.slice(0, 8)}…</td>
-                    <td className="px-4 py-3.5 text-neutral-secondary text-xs whitespace-nowrap">
+                    <td className="px-5 py-4 text-slate-400 font-mono text-xs font-medium">{lead.id.slice(0, 8)}…</td>
+                    <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
                       {format(new Date(lead.created_at), 'MMM d, HH:mm')}
                     </td>
-                    <td className="px-4 py-3.5 font-medium text-forest whitespace-nowrap">{lead.full_name}</td>
-                    <td className="px-4 py-3.5 text-neutral-body text-xs font-mono">{lead.phone}</td>
-                    <td className="px-4 py-3.5 text-neutral-secondary text-xs max-w-[140px] truncate">{lead.campaign_name ?? '—'}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={lead.status} /></td>
-                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <p className="font-bold text-slate-900 text-sm">{lead.full_name}</p>
+                      <p className="text-xs font-mono text-slate-500 mt-0.5">{lead.phone}</p>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 text-xs max-w-[160px] truncate font-medium">
+                      {lead.campaign_name ?? 'Direct Inbound'}
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={lead.status} />
+                    </td>
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                       <Toggle
                         enabled={lead.ai_mode}
                         onChange={(val) => aiMutation.mutate({ leadId: lead.id, ai_mode: val })}
                         size="sm"
+                        color="indigo"
                         label="Toggle AI mode"
                       />
                     </td>
-                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        disabled
-                        title={`Go to ${lead.campaign_name ?? 'campaign'} → Select Template to send to this and any other pending leads.`}
-                        className="btn-secondary text-xs py-1 px-2.5 opacity-40 cursor-not-allowed"
-                      >
-                        <Send size={12} />
-                        Send
-                      </button>
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigate('/whatsapp')}
+                          className="btn-secondary text-xs px-2.5 py-1.5 gap-1.5"
+                          title="Open WhatsApp Chat"
+                        >
+                          <MessageSquare size={13} className="text-emerald-600" />
+                          <span>Chat</span>
+                        </button>
+                        <button
+                          onClick={() => toast('info', 'Call audio logging feature is available for voice-agent calls.')}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-colors"
+                          title="Play Call Audio"
+                        >
+                          <PhoneCall size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -11,52 +11,52 @@
     box-sizing: border-box;
   }
   body {
-    @apply font-sans text-neutral-body bg-cream antialiased selection:bg-sage/20 selection:text-forest;
+    @apply font-sans text-slate-800 bg-canvas antialiased selection:bg-indigo-50 selection:text-indigo-700;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply text-forest font-semibold tracking-tight;
+    @apply text-slate-900 font-semibold tracking-tight;
   }
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-cream;
+    @apply bg-slate-100;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-neutral-divider rounded-full hover:bg-neutral-muted/40;
+    @apply bg-slate-300 rounded-full hover:bg-slate-400;
   }
 }
 
 @layer components {
   .status-badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-tight;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-tight;
   }
   .card {
-    @apply bg-white rounded-xl border border-neutral-border shadow-soft transition-all duration-150;
+    @apply bg-white rounded-xl border border-slate-200/90 shadow-soft hover:shadow-elevated transition-all duration-150;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-medium
-           hover:bg-terracotta-hover active:bg-terracotta-dark transition-all duration-150 shadow-apple-sm disabled:bg-neutral-divider disabled:text-neutral-muted disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold
+           hover:bg-indigo-700 active:bg-indigo-800 transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-transparent border border-sage text-sage text-sm font-medium
-           hover:bg-sage-light active:bg-sage-light/80 transition-all duration-150 shadow-apple-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium
+           hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-rose-700 text-white text-sm font-medium
-           hover:bg-rose-800 active:bg-rose-900 transition-all duration-150 shadow-apple-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-semibold
+           hover:bg-rose-700 active:bg-rose-800 transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .input {
-    @apply w-full rounded-lg border border-neutral-border bg-white px-3.5 py-2 text-sm text-forest
-           focus:outline-none focus:ring-2 focus:ring-sage/20 focus:border-sage
-           placeholder:text-neutral-muted disabled:bg-cream-light disabled:text-neutral-muted transition-all duration-150;
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500
+           placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-400 transition-all duration-150;
   }
   .label {
-    @apply block text-xs font-medium text-neutral-secondary mb-1.5;
+    @apply block text-xs font-medium text-slate-600 mb-1.5;
   }
   .select {
-    @apply w-full rounded-lg border border-neutral-border bg-white px-3.5 py-2 text-sm text-forest
-           focus:outline-none focus:ring-2 focus:ring-sage/20 focus:border-sage cursor-pointer transition-all duration-150;
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all duration-150;
   }
 }

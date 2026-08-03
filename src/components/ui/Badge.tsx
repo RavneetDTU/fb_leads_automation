@@ -1,12 +1,12 @@
 import type { LeadStatus } from '../../types';
 
 const statusConfig: Record<LeadStatus, { label: string; className: string }> = {
-  NEW: { label: 'New', className: 'bg-sky-50 text-sky-800 border border-sky-200' },
-  TEMPLATE_SENT: { label: 'Template Sent', className: 'bg-indigo-50 text-indigo-800 border border-indigo-200' },
-  UNREAD: { label: 'Unread', className: 'bg-terracotta-light text-terracotta-dark border border-terracotta/30' },
-  WAITING_FOR_REPLY: { label: 'Waiting', className: 'bg-[#FFF4E8] text-[#9B5A20] border border-terracotta/30' },
-  BOOKED: { label: 'Booked', className: 'bg-sage-light text-[#2E6A47] border border-sage/40' },
-  HANDED_OFF: { label: 'Handed Off', className: 'bg-cream-light text-neutral-secondary border border-neutral-border' },
+  NEW: { label: 'New Lead', className: 'bg-cyan-50 text-cyan-800 border border-cyan-200/80' },
+  TEMPLATE_SENT: { label: 'Template Sent', className: 'bg-indigo-50 text-indigo-800 border border-indigo-200/80' },
+  UNREAD: { label: 'Unread', className: 'bg-cyan-50 text-cyan-800 border border-cyan-200/80' },
+  WAITING_FOR_REPLY: { label: 'Hot Lead / Qualified', className: 'bg-amber-50 text-amber-900 border border-amber-200/80 font-bold' },
+  BOOKED: { label: 'Booked / Responded', className: 'bg-emerald-50 text-emerald-800 border border-emerald-200/80' },
+  HANDED_OFF: { label: 'Handed Off', className: 'bg-slate-100 text-slate-700 border border-slate-200' },
 };
 
 interface StatusBadgeProps {
@@ -14,7 +14,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const config = statusConfig[status] ?? { label: status, className: 'bg-cream-light text-neutral-secondary border border-neutral-border' };
+  const config = statusConfig[status] ?? { label: status, className: 'bg-slate-100 text-slate-700 border border-slate-200' };
   return (
     <span className={`status-badge ${config.className}`}>
       {config.label}
@@ -30,8 +30,8 @@ interface ActiveBadgeProps {
 
 export function ActiveBadge({ active, onLabel = 'Auto ON', offLabel = 'Auto OFF' }: ActiveBadgeProps) {
   return (
-    <span className={`status-badge ${active ? 'bg-sage-light text-[#2E6A47] border border-sage/40' : 'bg-cream-light text-neutral-muted border border-neutral-border'}`}>
-      <span className={`mr-1.5 w-1.5 h-1.5 rounded-full inline-block ${active ? 'bg-sage' : 'bg-neutral-muted'}`} />
+    <span className={`status-badge ${active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-bold' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+      <span className={`mr-1.5 w-1.5 h-1.5 rounded-full inline-block ${active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
       {active ? onLabel : offLabel}
     </span>
   );
@@ -43,9 +43,9 @@ interface ConnectionBadgeProps {
 
 export function ConnectionBadge({ connected }: ConnectionBadgeProps) {
   return (
-    <span className={`status-badge ${connected ? 'bg-sage-light text-[#2E6A47] border border-sage/40' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-      <span className={`mr-1.5 w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-sage' : 'bg-rose-500'}`} />
-      {connected ? 'Connected' : 'Not Connected'}
+    <span className={`status-badge ${connected ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold' : 'bg-rose-50 text-rose-800 border border-rose-200/80 font-bold'}`}>
+      <span className={`mr-1.5 w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+      {connected ? '🟢 Connected' : '🔴 Not Connected'}
     </span>
   );
 }

@@ -114,10 +114,10 @@ export function CalendarConfigPage() {
           <button
             key={s.id}
             onClick={() => setActiveSection(s.id)}
-            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors ${
               activeSection === s.id
-                ? 'text-brand-600 bg-brand-50 border-r-2 border-brand-500'
-                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                ? 'text-indigo-600 bg-indigo-50/80 border-r-2 border-indigo-600 font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             {s.label}
