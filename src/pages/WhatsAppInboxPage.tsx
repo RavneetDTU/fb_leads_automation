@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, post, patch } from '../lib/api';
 import type { ConversationListItem, Message } from '../types';
-import { StatusBadge } from '../components/ui/Badge';
+import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
@@ -206,12 +206,17 @@ export function WhatsAppInboxPage() {
               </div>
               <div className="flex items-center gap-4">
                 <StatusBadge status={selectedConv?.status ?? 'NEW'} />
+                {selectedConv?.is_old_lead && <OldLeadBadge reason={selectedConv.old_lead_reason} />}
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-                  <Bot size={18} className={selectedConv?.ai_mode ? 'text-indigo-600' : 'text-slate-400'} />
+                  <Bot size={18} className={selectedConv?.ai_mode && !selectedConv?.is_old_lead ? 'text-indigo-600' : 'text-slate-400'} />
                   <span className="text-xs font-semibold text-slate-700">Jarvis AI Mode</span>
                   <Toggle
-                    enabled={selectedConv?.ai_mode ?? false}
-                    onChange={(val) => aiToggleMutation.mutate({ ai_mode: val })}
+                    enabled={selectedConv?.is_old_lead ? false : (selectedConv?.ai_mode ?? false)}
+                    onChange={(val) => {
+                      if (!selectedConv?.is_old_lead) {
+                        aiToggleMutation.mutate({ ai_mode: val });
+                      }
+                    }}
                     size="sm"
                     color="indigo"
                     label="Switch AI mode"
@@ -281,25 +286,32 @@ export function WhatsAppInboxPage() {
 
             {/* Bottom Sticky Input Bar */}
             <div className="p-4 bg-white border-t border-slate-200 shadow-sm">
-              {selectedConv?.ai_mode && (
+              {selectedConv?.is_old_lead ? (
+                <div className="mb-2 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-900 font-medium flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>
+                    Outbound WhatsApp messaging is strictly disabled for historical/backfilled leads (is_old_lead=true).
+                  </span>
+                </div>
+              ) : selectedConv?.ai_mode ? (
                 <div className="mb-2 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs text-indigo-800 flex items-center gap-1.5">
                   <Bot size={14} className="text-indigo-600 shrink-0" />
                   <span>Jarvis AI mode is active. Turn off AI mode in the header to send manual agent messages.</span>
                 </div>
-              )}
+              ) : null}
               <div className="flex items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Type a WhatsApp message…"
+                  placeholder={selectedConv?.is_old_lead ? 'Outbound messaging disabled for old leads' : 'Type a WhatsApp message…'}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                  disabled={selectedConv?.ai_mode}
-                  className="input flex-1 rounded-full px-5 py-2.5 bg-slate-50 border-slate-200 focus:bg-white text-sm"
+                  disabled={selectedConv?.ai_mode || selectedConv?.is_old_lead}
+                  className="input flex-1 rounded-full px-5 py-2.5 bg-slate-50 border-slate-200 focus:bg-white text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!message.trim() || sendMutation.isPending || selectedConv?.ai_mode}
+                  disabled={!message.trim() || sendMutation.isPending || selectedConv?.ai_mode || selectedConv?.is_old_lead}
                   className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shrink-0 transition-all duration-150 disabled:bg-slate-200 disabled:cursor-not-allowed shadow-sm"
                   aria-label="Send message"
                 >

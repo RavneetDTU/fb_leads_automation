@@ -17,9 +17,14 @@ export type MessageDirection = 'inbound' | 'outbound';
 
 // --- Campaigns ---
 
+export type LeadSource = 'meta_live' | 'meta_backfill' | 'manual';
+
+// --- Campaigns ---
+
 export interface CampaignSummary {
   campaign_count: number;
   total_leads: number;
+  whatsapp_messages_sent: number;
   converted_leads: number;
 }
 
@@ -27,10 +32,15 @@ export interface Campaign {
   id: string;
   meta_campaign_id: string;
   name: string;
+  status?: string | null;
   is_active: boolean;
   assigned_template_name: string | null;
   assigned_template_set_at: string | null;
+  synced_at?: string | null;
   lead_count: number;
+  messages_sent_count?: number;
+  messages_read_count?: number;
+  converted_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -71,6 +81,10 @@ export interface LeadListItem {
   phone: string;
   campaign_name: string | null;
   status: LeadStatus;
+  source?: LeadSource;
+  is_old_lead?: boolean;
+  old_lead_reason?: string | null;
+  imported_at?: string | null;
   ai_mode: boolean;
   last_activity_at: string;
   created_at: string;
@@ -105,6 +119,10 @@ export interface LeadDetail {
   meta_ad_name: string | null;
   meta_form_fields: Record<string, unknown>;
   status: LeadStatus;
+  source?: LeadSource;
+  is_old_lead?: boolean;
+  old_lead_reason?: string | null;
+  imported_at?: string | null;
   ai_mode: boolean;
   last_activity_at: string;
   created_at: string;
@@ -159,6 +177,9 @@ export interface ConversationListItem {
   unread: boolean;
   ai_mode: boolean;
   status: LeadStatus;
+  source?: LeadSource;
+  is_old_lead?: boolean;
+  old_lead_reason?: string | null;
 }
 
 // --- Settings ---

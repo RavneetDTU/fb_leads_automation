@@ -49,3 +49,18 @@ export function ConnectionBadge({ connected }: ConnectionBadgeProps) {
     </span>
   );
 }
+
+interface OldLeadBadgeProps {
+  reason?: string | null;
+}
+
+export function OldLeadBadge({ reason }: OldLeadBadgeProps) {
+  return (
+    <span
+      className="status-badge bg-amber-50 text-amber-900 border border-amber-300 font-bold inline-flex items-center gap-1"
+      title={reason || 'Historical lead imported via backfill — auto & manual messaging disabled for safety.'}
+    >
+      ⚠️ Old Lead
+    </span>
+  );
+}
