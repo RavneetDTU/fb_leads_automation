@@ -2,17 +2,191 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall } from 'lucide-react';
+import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { get, patch } from '../lib/api';
+import { get, patch, post } from '../lib/api';
 import type { LeadSummary, LeadPaginatedResponse, LeadListItem, LeadStatus, Campaign } from '../types';
-import { StatusBadge } from '../components/ui/Badge';
+import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
 import { Skeleton, TableSkeleton } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { Pagination } from '../components/ui/Pagination';
 import { LeadModal } from '../components/leads/LeadModal';
+
+// ─── Add Lead Modal ────────────────────────────────────────────────────────────
+
+interface AddLeadForm {
+  campaign_id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+}
+
+function AddLeadModal({
+  open,
+  campaigns,
+  onClose,
+  onSuccess,
+}: {
+  open: boolean;
+  campaigns: import('../types').Campaign[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { token } = useAuth();
+  const { toast } = useToast();
+  const [form, setForm] = useState<AddLeadForm>({
+    campaign_id: '',
+    full_name: '',
+    phone: '',
+    email: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  function reset() {
+    setForm({ campaign_id: '', full_name: '', phone: '', email: '' });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.campaign_id || !form.full_name.trim() || !form.phone.trim()) return;
+    setSubmitting(true);
+    try {
+      await post<unknown>('/api/leads', token!, {
+        campaign_id: form.campaign_id,
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+      });
+      toast('success', 'Lead added successfully.');
+      reset();
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast('error', (err as Error).message ?? 'Failed to add lead.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200/60"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Add a Lead</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Manually add a lead to an existing campaign.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <form id="add-lead-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          {/* Campaign */}
+          <div className="space-y-1.5">
+            <label htmlFor="lead-campaign" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Campaign <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="lead-campaign"
+              required
+              value={form.campaign_id}
+              onChange={(e) => setForm((f) => ({ ...f, campaign_id: e.target.value }))}
+              className="select w-full"
+            >
+              <option value="">Select a campaign…</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Full Name */}
+          <div className="space-y-1.5">
+            <label htmlFor="lead-name" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="lead-name"
+              type="text"
+              required
+              value={form.full_name}
+              onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              placeholder="e.g. John Smith"
+              className="input w-full"
+              autoFocus
+            />
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-1.5">
+            <label htmlFor="lead-phone" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Phone <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="lead-phone"
+              type="tel"
+              required
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              placeholder="e.g. +27821234567"
+              className="input w-full"
+            />
+          </div>
+
+          {/* Email (optional) */}
+          <div className="space-y-1.5">
+            <label htmlFor="lead-email" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Email <span className="text-slate-400 font-normal normal-case">(optional)</span>
+            </label>
+            <input
+              id="lead-email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="e.g. john@example.com"
+              className="input w-full"
+            />
+          </div>
+        </form>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-lead-form"
+            disabled={submitting || !form.campaign_id || !form.full_name.trim() || !form.phone.trim()}
+            className="btn-primary"
+          >
+            {submitting ? 'Adding…' : 'Add Lead'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const LIMIT = 50;
 const POLL_MS = 10_000;
@@ -46,6 +220,7 @@ export function LastThirtyDaysPage() {
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
   const [offset, setOffset] = useState(0);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
 
   const summaryQuery = useQuery<LeadSummary>({
     queryKey: ['leads-summary'],
@@ -113,13 +288,23 @@ export function LastThirtyDaysPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Lead Activity & Logs</h1>
           <p className="text-xs text-slate-500 mt-0.5">Real-time status tracking for all inbound Meta ad leads from the last 30 days.</p>
         </div>
-        <button
-          onClick={() => navigate('/whatsapp')}
-          className="btn-primary"
-        >
-          <MessageSquare size={16} />
-          Open WhatsApp Inbox →
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <button
+            id="add-lead-btn"
+            onClick={() => setAddLeadOpen(true)}
+            className="btn-secondary"
+          >
+            <UserPlus size={15} />
+            Add a lead
+          </button>
+          <button
+            onClick={() => navigate('/whatsapp')}
+            className="btn-primary"
+          >
+            <MessageSquare size={16} />
+            Open WhatsApp Inbox →
+          </button>
+        </div>
       </div>
 
       {/* Stat Bar */}
@@ -216,16 +401,25 @@ export function LastThirtyDaysPage() {
                       {lead.campaign_name ?? 'Direct Inbound'}
                     </td>
                     <td className="px-5 py-4">
-                      <StatusBadge status={lead.status} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={lead.status} />
+                        {lead.is_old_lead && <OldLeadBadge reason={lead.old_lead_reason} />}
+                      </div>
                     </td>
                     <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                      <Toggle
-                        enabled={lead.ai_mode}
-                        onChange={(val) => aiMutation.mutate({ leadId: lead.id, ai_mode: val })}
-                        size="sm"
-                        color="indigo"
-                        label="Toggle AI mode"
-                      />
+                      <div title={lead.is_old_lead ? 'AI mode disabled for historical leads' : undefined}>
+                        <Toggle
+                          enabled={lead.is_old_lead ? false : lead.ai_mode}
+                          onChange={(val) => {
+                            if (!lead.is_old_lead) {
+                              aiMutation.mutate({ leadId: lead.id, ai_mode: val });
+                            }
+                          }}
+                          size="sm"
+                          color="indigo"
+                          label="Toggle AI mode"
+                        />
+                      </div>
                     </td>
                     <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
@@ -265,6 +459,17 @@ export function LastThirtyDaysPage() {
       {selectedLead && (
         <LeadModal leadId={selectedLead} open={!!selectedLead} onClose={() => setSelectedLead(null)} />
       )}
+
+      {/* Add Lead modal */}
+      <AddLeadModal
+        open={addLeadOpen}
+        campaigns={campaignsQuery.data ?? []}
+        onClose={() => setAddLeadOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['leads'] });
+          qc.invalidateQueries({ queryKey: ['leads-summary'] });
+        }}
+      />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Globe2, FileText, Users, Plus, TrendingUp, Sparkles } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { LayoutGrid, Globe2, FileText, Users, Plus, TrendingUp, Sparkles, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { get, patch } from '../lib/api';
+import { get, post } from '../lib/api';
 import type { Campaign, CampaignSummary } from '../types';
 import { ActiveBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
@@ -47,12 +47,144 @@ function MetricCard({
   );
 }
 
-export function CampaignsPage() {
+// ─── Create Manual Campaign Modal ────────────────────────────────────────────
+
+interface CreateCampaignForm {
+  name: string;
+  is_active: boolean;
+}
+
+function CreateCampaignModal({
+  open,
+  onClose,
+  onSuccess,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const { token } = useAuth();
   const { toast } = useToast();
+  const [form, setForm] = useState<CreateCampaignForm>({ name: '', is_active: true });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSubmitting(true);
+    try {
+      await post<Campaign>('/api/campaigns', token!, {
+        name: form.name.trim(),
+        is_active: form.is_active,
+      });
+      toast('success', 'Campaign created successfully.');
+      setForm({ name: '', is_active: true });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast('error', (err as Error).message ?? 'Failed to create campaign.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200/60"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Create Manual Campaign</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Add a custom campaign to track leads manually.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <form id="create-campaign-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <label htmlFor="campaign-name" className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Campaign Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="campaign-name"
+              type="text"
+              required
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="e.g. Durban Walk-In July"
+              className="input w-full"
+              autoFocus
+            />
+          </div>
+
+          {/* Auto Mode toggle */}
+          <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Auto Mode</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                When on, the AI will automatically message new leads in this campaign.
+              </p>
+            </div>
+            <Toggle
+              enabled={form.is_active}
+              onChange={(val) => setForm((f) => ({ ...f, is_active: val }))}
+              color="emerald"
+              label="Toggle Auto Mode"
+            />
+          </div>
+        </form>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary"
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-campaign-form"
+            disabled={submitting || !form.name.trim()}
+            className="btn-primary"
+          >
+            {submitting ? 'Creating…' : 'Create Campaign'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export function CampaignsPage() {
+  const { token } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [pickerCampaignId, setPickerCampaignId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const summaryQuery = useQuery<CampaignSummary>({
     queryKey: ['campaigns-summary'],
@@ -64,24 +196,6 @@ export function CampaignsPage() {
     queryKey: ['campaigns'],
     queryFn: () => get<Campaign[]>('/api/campaigns?limit=100', token!),
     enabled: !!token,
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      patch<Campaign>(`/api/campaigns/${id}`, token!, { is_active }),
-    onMutate: async ({ id, is_active }) => {
-      await qc.cancelQueries({ queryKey: ['campaigns'] });
-      const prev = qc.getQueryData<Campaign[]>(['campaigns']);
-      qc.setQueryData<Campaign[]>(['campaigns'], (old) =>
-        old?.map((c) => (c.id === id ? { ...c, is_active } : c)),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['campaigns'], ctx.prev);
-      toast('error', 'Failed to update Auto Message toggle.');
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
   });
 
   const campaigns = campaignsQuery.data ?? [];
@@ -103,11 +217,12 @@ export function CampaignsPage() {
           <p className="text-xs text-slate-500 mt-0.5">Meta ad accounts linked to automated Jarvis AI WhatsApp sequences.</p>
         </div>
         <button
-          onClick={() => toast('info', 'Connecting new Meta Ad Campaign requires Meta Business Manager OAuth.')}
+          id="create-manual-campaign-btn"
+          onClick={() => setCreateOpen(true)}
           className="btn-primary"
         >
           <Plus size={16} />
-          + Create AI Campaign
+          + Create Manual Campaign
         </button>
       </div>
 
@@ -135,7 +250,7 @@ export function CampaignsPage() {
             />
             <MetricCard
               label="WhatsApp Messages"
-              value={totalLeads > 0 ? totalLeads * 2 : '0'}
+              value={summaryQuery.data?.whatsapp_messages_sent ?? 0}
               trend="99.4% Delivered"
               icon={FileText}
               badgeBg="bg-cyan-50"
@@ -172,7 +287,7 @@ export function CampaignsPage() {
         ) : campaigns.length === 0 ? (
           <EmptyState
             title="No campaigns connected yet"
-            description="Link your Meta ad account in Settings to sync active lead campaigns."
+            description="Link your Meta ad account in Settings to sync active lead campaigns, or create a manual campaign using the button above."
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -181,7 +296,6 @@ export function CampaignsPage() {
                 key={campaign.id}
                 campaign={campaign}
                 onNavigate={() => navigate(`/campaigns/${campaign.id}/leads`)}
-                onToggle={(val) => toggleMutation.mutate({ id: campaign.id, is_active: val })}
                 onTemplateClick={() => setPickerCampaignId(campaign.id)}
               />
             ))}
@@ -197,16 +311,27 @@ export function CampaignsPage() {
           onClose={() => setPickerCampaignId(null)}
         />
       )}
+
+      {/* Create Manual Campaign modal */}
+      <CreateCampaignModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['campaigns'] });
+          qc.invalidateQueries({ queryKey: ['campaigns-summary'] });
+        }}
+      />
     </div>
   );
 }
 
+// ─── Campaign Card (toggle removed) ──────────────────────────────────────────
+
 function CampaignCard({
-  campaign, onNavigate, onToggle, onTemplateClick,
+  campaign, onNavigate, onTemplateClick,
 }: {
   campaign: Campaign;
   onNavigate: () => void;
-  onToggle: (val: boolean) => void;
   onTemplateClick: () => void;
 }) {
   return (
@@ -257,37 +382,25 @@ function CampaignCard({
           <p className="text-[10px] font-semibold text-slate-400 uppercase">Total</p>
         </div>
         <div>
-          <p className="font-bold text-slate-900 text-sm">{campaign.is_active ? campaign.lead_count : 0}</p>
+          <p className="font-bold text-slate-900 text-sm">{campaign.messages_sent_count ?? 0}</p>
           <p className="text-[10px] font-semibold text-slate-400 uppercase">Sent</p>
         </div>
         <div>
-          <p className="font-bold text-slate-900 text-sm">{Math.round(campaign.lead_count * 0.8)}</p>
+          <p className="font-bold text-slate-900 text-sm">{campaign.messages_read_count ?? 0}</p>
           <p className="text-[10px] font-semibold text-slate-400 uppercase">Read</p>
         </div>
         <div>
-          <p className="font-bold text-emerald-600 text-sm">{Math.round(campaign.lead_count * 0.25)}</p>
+          <p className="font-bold text-emerald-600 text-sm">{campaign.converted_count ?? 0}</p>
           <p className="text-[10px] font-semibold text-slate-400 uppercase">Conv.</p>
         </div>
       </div>
 
-      {/* Footer Controls */}
+      {/* Footer: date only (Auto Mode toggle removed) */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[11px] text-slate-400 font-medium">
           Created {format(new Date(campaign.created_at), 'MMM d, yyyy')}
         </span>
-        <div
-          className="flex items-center gap-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span className="text-xs text-slate-600 font-medium">Auto Mode</span>
-          <Toggle
-            enabled={campaign.is_active}
-            onChange={onToggle}
-            size="sm"
-            color="emerald"
-            label="Toggle Auto Message"
-          />
-        </div>
+        <ActiveBadge active={campaign.is_active} />
       </div>
     </div>
   );

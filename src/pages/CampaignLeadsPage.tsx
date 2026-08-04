@@ -63,23 +63,6 @@ export function CampaignLeadsPage() {
     onSettled: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
   });
 
-  const aiMutation = useMutation({
-    mutationFn: ({ leadId, ai_mode }: { leadId: string; ai_mode: boolean }) =>
-      patch(`/api/leads/${leadId}`, token!, { ai_mode }),
-    onMutate: async ({ leadId, ai_mode }) => {
-      await qc.cancelQueries({ queryKey: ['campaign-leads', campaignId] });
-      const prev = qc.getQueryData<CampaignLeadsPaginatedResponse>(['campaign-leads', campaignId, offset]);
-      qc.setQueryData<CampaignLeadsPaginatedResponse>(['campaign-leads', campaignId, offset], (old) =>
-        old ? { ...old, items: old.items.map((l) => l.id === leadId ? { ...l, ai_mode } : l) } : old,
-      );
-      return { prev };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['campaign-leads', campaignId, offset], ctx.prev);
-      toast('error', 'Failed to update AI mode.');
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['campaign-leads', campaignId] }),
-  });
 
   const filtered = (leadsQuery.data?.items ?? []).filter((l) =>
     `${l.full_name} ${l.phone}`.toLowerCase().includes(search.toLowerCase()),
@@ -138,7 +121,7 @@ export function CampaignLeadsPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {['Name', 'Phone', 'Status', 'AI Mode', 'Date'].map((h) => (
+                {['Name', 'Phone', 'Status', 'Date'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -147,18 +130,17 @@ export function CampaignLeadsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {leadsQuery.isLoading ? (
-                <tr><td colSpan={5}><TableSkeleton rows={8} cols={5} /></td></tr>
+                <tr><td colSpan={4}><TableSkeleton rows={8} cols={4} /></td></tr>
               ) : leadsQuery.error ? (
-                <tr><td colSpan={5}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
+                <tr><td colSpan={4}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5}><EmptyState title="No leads found" description="No leads match your search." /></td></tr>
+                <tr><td colSpan={4}><EmptyState title="No leads found" description="No leads match your search." /></td></tr>
               ) : (
                 filtered.map((lead) => (
                   <LeadRow
                     key={lead.id}
                     lead={lead}
                     onClick={() => setSelectedLead(lead.id)}
-                    onAiToggle={(val) => aiMutation.mutate({ leadId: lead.id, ai_mode: val })}
                   />
                 ))
               )}
@@ -196,8 +178,8 @@ export function CampaignLeadsPage() {
   );
 }
 
-function LeadRow({ lead, onClick, onAiToggle }: {
-  lead: LeadListItem; onClick: () => void; onAiToggle: (val: boolean) => void;
+function LeadRow({ lead, onClick }: {
+  lead: LeadListItem; onClick: () => void;
 }) {
   return (
     <tr
@@ -207,12 +189,6 @@ function LeadRow({ lead, onClick, onAiToggle }: {
       <td className="px-4 py-3 font-medium text-slate-800">{lead.full_name}</td>
       <td className="px-4 py-3 text-slate-600">{lead.phone}</td>
       <td className="px-4 py-3"><StatusBadge status={lead.status} /></td>
-      <td
-        className="px-4 py-3"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Toggle enabled={lead.ai_mode} onChange={onAiToggle} size="sm" label="Toggle AI mode" />
-      </td>
       <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
         {format(new Date(lead.created_at), 'MMM d, yyyy')}
       </td>
