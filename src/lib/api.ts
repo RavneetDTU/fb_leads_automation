@@ -1,7 +1,7 @@
 // TODO(security): API token is read from AuthContext (in-memory only, never from localStorage/sessionStorage)
 // This prevents XSS-based token theft while still allowing the admin tool to function.
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://wati.ayurvedicpromise.com';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.wati.ayurvedicpromise.com';
 
 export class ApiError extends Error {
   status: number;
@@ -45,6 +45,16 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401) {
+      try {
+        sessionStorage.removeItem('jarvis_admin_token');
+      } catch {
+        // Ignore sessionStorage errors
+      }
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
     const detail =
       (body as { detail?: string })?.detail ?? `HTTP ${res.status}`;
     throw new ApiError(res.status, detail);
