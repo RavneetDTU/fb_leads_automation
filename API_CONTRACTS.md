@@ -4,11 +4,31 @@
 > This document is the single source of truth for the HTTP API interface contract. It is shared verbatim with the frontend application. No implementation details belong here — strictly endpoint paths, authentication headers, request payloads, response schemas, and enums.
 
 ## Authentication
-All `/api/*` endpoints require HTTP Bearer Token authentication.
+All `/api/*` endpoints (except `/api/auth/login`) require HTTP Bearer Token authentication.
 ```http
 Authorization: Bearer <API_BEARER_TOKEN>
 ```
-Default token value: `admin` (or configured via `API_BEARER_TOKEN` environment variable).
+
+### `POST /api/auth/login`
+Authenticates a user via User ID and Password, returning a Bearer access token.
+
+- **Auth Required**: No (Unauthenticated)
+- **Request Body**:
+```json
+{
+  "username": "admin",
+  "password": "<ADMIN_PASSWORD>"
+}
+```
+- **Response `200 OK`**:
+```json
+{
+  "access_token": "<API_BEARER_TOKEN>",
+  "token_type": "bearer"
+}
+```
+- **Response `401 Unauthorized`**: `{ "detail": "Invalid User ID or Password" }`
+- **Response `429 Too Many Requests`**: `{ "detail": "Too many failed login attempts. Please try again in 15 minutes." }`
 
 ---
 

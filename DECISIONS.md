@@ -71,3 +71,17 @@ The earlier in-memory guidance is **superseded**. Per `FRONTEND_PATCH_3_PROMPT.m
 ### Rationale & Mechanism
 - **UX Requirement**: `sessionStorage` preserves authentication across page reloads and tab navigations while scoping token lifetime to the active browser tab session.
 - **Scope**: `sessionStorage` avoids writing tokens to persistent `localStorage` while ensuring uninterrupted admin sessions across page refreshes.
+
+---
+
+## [2026-08-10] User ID & Password Login Authentication Flow
+
+### Context
+Asking end users to manually copy and paste 64-character raw hex Bearer tokens into the login form creates friction and UX confusion.
+
+### Decision
+1. **User ID & Password Login Endpoint**: Introduced `POST /api/auth/login` accepting `{ username, password }` and returning the system Bearer access token.
+2. **Single-Admin Credential Scope**: For V1, the system supports a single hardcoded admin credential pair (`ADMIN_USERNAME` / `ADMIN_PASSWORD`) defined in service environment configuration. Multiple user accounts or per-user database tables are explicitly out of scope for V1.
+3. **Constant-Time Comparison**: Password authentication uses constant-time string comparison (`secrets.compare_digest`) to prevent side-channel timing attacks.
+4. **Brute-Force Protection**: Implemented IP-based sliding window rate limiting. If an IP accumulates 5 failed login attempts within 15 minutes, the endpoint responds with HTTP 429 Too Many Requests.
+
