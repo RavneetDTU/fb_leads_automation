@@ -1,7 +1,14 @@
-// TODO(security): API token is read from AuthContext (in-memory only, never from localStorage/sessionStorage)
-// This prevents XSS-based token theft while still allowing the admin tool to function.
+const PRODUCTION_API = 'https://wati.ayurvedicpromise.com';
+const DEAD_API = 'https://api.wati.ayurvedicpromise.com';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://api.wati.ayurvedicpromise.com';
+function resolveBaseUrl(): string {
+  const raw = String(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+  if (import.meta.env.DEV && !raw) return '';
+  if (!raw || raw === DEAD_API) return PRODUCTION_API;
+  return raw;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export class ApiError extends Error {
   status: number;
@@ -20,7 +27,6 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  token: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
@@ -28,7 +34,6 @@ async function request<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
   });
@@ -45,16 +50,6 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    if (res.status === 401) {
-      try {
-        sessionStorage.removeItem('jarvis_admin_token');
-      } catch {
-        // Ignore sessionStorage errors
-      }
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
-    }
     const detail =
       (body as { detail?: string })?.detail ?? `HTTP ${res.status}`;
     throw new ApiError(res.status, detail);
@@ -63,32 +58,31 @@ async function request<T>(
   return body as T;
 }
 
-// Typed API helpers — each function accepts a token as first param
-export function get<T>(path: string, token: string): Promise<T> {
-  return request<T>(path, token);
+export function get<T>(path: string): Promise<T> {
+  return request<T>(path);
 }
 
-export function post<T>(path: string, token: string, body: unknown): Promise<T> {
-  return request<T>(path, token, {
+export function post<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
     method: 'POST',
     body: JSON.stringify(body),
   });
 }
 
-export function patch<T>(path: string, token: string, body: unknown): Promise<T> {
-  return request<T>(path, token, {
+export function patch<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
 }
 
-export function put<T>(path: string, token: string, body: unknown): Promise<T> {
-  return request<T>(path, token, {
+export function put<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
     method: 'PUT',
     body: JSON.stringify(body),
   });
 }
 
-export function del<T>(path: string, token: string): Promise<T> {
-  return request<T>(path, token, { method: 'DELETE' });
+export function del<T>(path: string): Promise<T> {
+  return request<T>(path, { method: 'DELETE' });
 }

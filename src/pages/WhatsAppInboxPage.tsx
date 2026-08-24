@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck, PhoneCall, Video, MoreVertical } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, post, patch } from '../lib/api';
 import type { ConversationListItem, Message } from '../types';
@@ -27,7 +26,6 @@ function getInitials(name: string): string {
 }
 
 export function WhatsAppInboxPage() {
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -41,9 +39,7 @@ export function WhatsAppInboxPage() {
     queryFn: () =>
       get<ConversationListItem[]>(
         `/api/inbox/conversations?limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`,
-        token!,
       ),
-    enabled: !!token,
     refetchInterval: POLL_MS,
   });
 
@@ -52,8 +48,8 @@ export function WhatsAppInboxPage() {
   const messagesQuery = useQuery<Message[]>({
     queryKey: ['conv-messages', selectedId],
     queryFn: () =>
-      get<Message[]>(`/api/inbox/conversations/${selectedId}/messages`, token!),
-    enabled: !!token && !!selectedId,
+      get<Message[]>(`/api/inbox/conversations/${selectedId}/messages`),
+    enabled: !!selectedId,
     refetchInterval: POLL_MS,
   });
 
@@ -64,7 +60,7 @@ export function WhatsAppInboxPage() {
 
   const aiToggleMutation = useMutation({
     mutationFn: ({ ai_mode }: { ai_mode: boolean }) =>
-      patch(`/api/leads/${selectedId}`, token!, { ai_mode }),
+      patch(`/api/leads/${selectedId}`, { ai_mode }),
     onMutate: async ({ ai_mode }) => {
       await qc.cancelQueries({ queryKey: ['conversations'] });
       const prev = qc.getQueryData<ConversationListItem[]>(['conversations', search]);
@@ -82,7 +78,7 @@ export function WhatsAppInboxPage() {
 
   const sendMutation = useMutation({
     mutationFn: (body: string) =>
-      post<Message>(`/api/inbox/conversations/${selectedId}/messages`, token!, { body }),
+      post<Message>(`/api/inbox/conversations/${selectedId}/messages`, { body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['conv-messages', selectedId] });
       qc.invalidateQueries({ queryKey: ['conversations'] });
@@ -111,7 +107,7 @@ export function WhatsAppInboxPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">WhatsApp Chats</h2>
             <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              🟢 WhatsApp Web Connected
+              Wati Connected
             </span>
           </div>
           <div className="relative">
@@ -133,7 +129,7 @@ export function WhatsAppInboxPage() {
           ) : convsQuery.error ? (
             <ErrorState message={(convsQuery.error as Error).message} onRetry={convsQuery.refetch} />
           ) : (convsQuery.data ?? []).length === 0 ? (
-            <EmptyState title="No active chats" description="Inbound Meta WhatsApp leads will appear here." />
+            <EmptyState title="No active chats" description="Inbound Wati replies will appear here." />
           ) : (
             (convsQuery.data ?? []).map((conv) => {
               const isSelected = selectedId === conv.lead_id;
@@ -156,7 +152,7 @@ export function WhatsAppInboxPage() {
                     {getInitials(conv.full_name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-1">
+                    <div className="flex justify-between items-baseline mb-0.5">
                       <span className={`text-sm truncate ${conv.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
                         {conv.full_name}
                       </span>
@@ -164,8 +160,9 @@ export function WhatsAppInboxPage() {
                         {formatDistanceToNow(new Date(conv.last_activity_at), { addSuffix: false })}
                       </span>
                     </div>
+                    <p className="text-[11px] font-mono text-slate-400 truncate">{conv.phone}</p>
                     <p className="text-xs text-slate-500 truncate leading-relaxed">
-                      {conv.last_message_preview ?? conv.phone}
+                      {conv.last_message_preview}
                     </p>
                   </div>
                   {conv.unread && (
@@ -186,9 +183,9 @@ export function WhatsAppInboxPage() {
             <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600 shadow-md border border-emerald-100">
               <MessageSquare size={36} />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 mb-1">Jarvis AI Native WhatsApp Web Inbox</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Jarvis AI Wati Inbox</h2>
             <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-              Select a conversation from the left contact panel to inspect live chat history, manual agent override, or AI bot responses.
+              Select a conversation to inspect Wati chat history, send a manual reply, or toggle Jarvis AI mode.
             </p>
           </div>
         ) : (
@@ -242,6 +239,10 @@ export function WhatsAppInboxPage() {
                 (messagesQuery.data ?? []).map((msg) => {
                   const isOut = msg.direction === 'outbound';
                   const isAi = msg.sender === 'ai';
+                  const isHuman = msg.sender === 'human';
+                  const delivered = ['delivered', 'read', 'replied'].includes(
+                    (msg.delivery_status || '').toLowerCase(),
+                  );
                   return (
                     <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[65%] flex flex-col ${isOut ? 'items-end' : 'items-start'}`}>
@@ -251,9 +252,13 @@ export function WhatsAppInboxPage() {
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 font-bold text-[10px]">
                               <Bot size={11} /> 🤖 Jarvis AI
                             </span>
-                          ) : isOut ? (
+                          ) : isHuman && isOut ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
                               <UserCheck size={11} /> Human Agent
+                            </span>
+                          ) : isOut ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                              Template
                             </span>
                           ) : (
                             <span className="text-[11px] text-slate-500 font-medium">Lead</span>
@@ -273,7 +278,12 @@ export function WhatsAppInboxPage() {
                           {/* Timestamp & Double Checkmarks */}
                           <div className="flex items-center justify-end gap-1 text-[10px] mt-1 text-slate-500 select-none">
                             <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
-                            {isOut && <CheckCheck size={14} className="text-emerald-600 inline" />}
+                            {isOut && (
+                              <CheckCheck
+                                size={14}
+                                className={`inline ${delivered ? 'text-emerald-600' : 'text-slate-400'}`}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>

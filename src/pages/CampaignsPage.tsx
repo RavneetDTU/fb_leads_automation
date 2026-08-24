@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LayoutGrid, Globe2, FileText, Users, Plus, TrendingUp, Sparkles, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, post } from '../lib/api';
 import type { Campaign, CampaignSummary } from '../types';
@@ -63,7 +62,6 @@ function CreateCampaignModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const { token } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<CreateCampaignForm>({ name: '', is_active: true });
   const [submitting, setSubmitting] = useState(false);
@@ -73,7 +71,7 @@ function CreateCampaignModal({
     if (!form.name.trim()) return;
     setSubmitting(true);
     try {
-      await post<Campaign>('/api/campaigns', token!, {
+      await post<Campaign>('/api/campaigns', {
         name: form.name.trim(),
         is_active: form.is_active,
       });
@@ -180,7 +178,6 @@ function CreateCampaignModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function CampaignsPage() {
-  const { token } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [pickerCampaignId, setPickerCampaignId] = useState<string | null>(null);
@@ -188,14 +185,12 @@ export function CampaignsPage() {
 
   const summaryQuery = useQuery<CampaignSummary>({
     queryKey: ['campaigns-summary'],
-    queryFn: () => get<CampaignSummary>('/api/campaigns/summary', token!),
-    enabled: !!token,
+    queryFn: () => get<CampaignSummary>('/api/campaigns/summary'),
   });
 
   const campaignsQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
-    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100', token!),
-    enabled: !!token,
+    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100'),
   });
 
   const campaigns = campaignsQuery.data ?? [];

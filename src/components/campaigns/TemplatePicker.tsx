@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { get, post } from '../../lib/api';
 import type { WatiTemplate, ApplyTemplateResponse } from '../../types';
@@ -15,7 +14,6 @@ interface TemplatePickerProps {
 }
 
 export function TemplatePicker({ campaignId, open, onClose }: TemplatePickerProps) {
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -24,13 +22,13 @@ export function TemplatePicker({ campaignId, open, onClose }: TemplatePickerProp
 
   const { data, isLoading, error, refetch } = useQuery<WatiTemplate[]>({
     queryKey: ['templates', campaignId],
-    queryFn: () => get<WatiTemplate[]>(`/api/campaigns/${campaignId}/available-templates`, token!),
-    enabled: !!token && open,
+    queryFn: () => get<WatiTemplate[]>(`/api/campaigns/${campaignId}/available-templates`),
+    enabled: open,
   });
 
   const mutation = useMutation({
     mutationFn: (templateName: string) =>
-      post<ApplyTemplateResponse>(`/api/campaigns/${campaignId}/apply-template`, token!, {
+      post<ApplyTemplateResponse>(`/api/campaigns/${campaignId}/apply-template`, {
         template_name: templateName,
       }),
     onSuccess: (res) => {

@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
-import { LoginPage } from './pages/LoginPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { CampaignLeadsPage } from './pages/CampaignLeadsPage';
 import { LastThirtyDaysPage } from './pages/LastThirtyDaysPage';
@@ -13,7 +12,6 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
         <Route element={<AppLayout />}>
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/:id/leads" element={<CampaignLeadsPage />} />

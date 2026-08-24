@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ChevronRight, Search, FileText } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, patch } from '../lib/api';
 import type { Campaign, CampaignLeadsPaginatedResponse, LeadListItem } from '../types';
@@ -19,7 +18,6 @@ const LIMIT = 50;
 
 export function CampaignLeadsPage() {
   const { id: campaignId } = useParams<{ id: string }>();
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
@@ -29,8 +27,7 @@ export function CampaignLeadsPage() {
 
   const campaignQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
-    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100', token!),
-    enabled: !!token,
+    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100'),
   });
 
   const campaign = campaignQuery.data?.find((c) => c.id === campaignId);
@@ -40,14 +37,13 @@ export function CampaignLeadsPage() {
     queryFn: () =>
       get<CampaignLeadsPaginatedResponse>(
         `/api/campaigns/${campaignId}/leads?limit=${LIMIT}&offset=${offset}`,
-        token!,
       ),
-    enabled: !!token && !!campaignId,
+    enabled: !!campaignId,
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      patch(`/api/campaigns/${id}`, token!, { is_active }),
+      patch(`/api/campaigns/${id}`, { is_active }),
     onMutate: async ({ id, is_active }) => {
       await qc.cancelQueries({ queryKey: ['campaigns'] });
       const prev = qc.getQueryData<Campaign[]>(['campaigns']);

@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Settings, Trash2, ExternalLink, MapPin, Calendar as CalendarIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, post, del } from '../lib/api';
 import type { CalendarResponse } from '../types';
@@ -12,25 +11,33 @@ import { ErrorState, EmptyState } from '../components/ui/States';
 import { Modal } from '../components/ui/Modal';
 
 export function CalendarsPage() {
-  const { token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CalendarResponse | null>(null);
   const [newName, setNewName] = useState('');
   const [newLocation, setNewLocation] = useState('');
 
+  useEffect(() => {
+    if (searchParams.get('connected') !== 'true') return;
+    toast('success', 'Google Calendar connected.');
+    qc.invalidateQueries({ queryKey: ['calendars'] });
+    const next = new URLSearchParams(searchParams);
+    next.delete('connected');
+    setSearchParams(next, { replace: true });
+  }, [qc, searchParams, setSearchParams, toast]);
+
   const { data, isLoading, error, refetch } = useQuery<CalendarResponse[]>({
     queryKey: ['calendars'],
-    queryFn: () => get<CalendarResponse[]>('/api/calendars', token!),
-    enabled: !!token,
+    queryFn: () => get<CalendarResponse[]>('/api/calendars'),
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
       post<{ id: number; display_name: string; location: string; auth_url: string }>(
-        '/api/calendars', token!, { display_name: newName.trim(), location: newLocation.trim() }
+        '/api/calendars', { display_name: newName.trim(), location: newLocation.trim() }
       ),
     onSuccess: async (res) => {
       qc.invalidateQueries({ queryKey: ['calendars'] });
@@ -40,19 +47,18 @@ export function CalendarsPage() {
       toast('success', 'Branch created. Starting Google authorization…');
       try {
         const authRes = await get<{ url: string }>(
-          `/api/calendars/auth/url?calendar_id=${res.id}`, token!
+          `/api/calendars/auth/url?calendar_id=${res.id}`,
         );
-        window.open(authRes.url, 'google-oauth', 'width=500,height=600');
-        setTimeout(() => qc.invalidateQueries({ queryKey: ['calendars'] }), 3000);
+        window.location.assign(authRes.url);
       } catch {
-        toast('warning', 'Branch created. Re-connect via branch settings if popup blocked.');
+        toast('warning', 'Branch created. Use Reconnect on the branch card if Google did not open.');
       }
     },
     onError: (err: Error) => toast('error', `Failed to create branch: ${err.message}`),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => del<void>(`/api/calendars/${id}`, token!),
+    mutationFn: (id: number) => del<void>(`/api/calendars/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['calendars'] });
       setDeleteTarget(null);
@@ -64,10 +70,9 @@ export function CalendarsPage() {
   async function handleReconnect(cal: CalendarResponse) {
     try {
       const authRes = await get<{ url: string }>(
-        `/api/calendars/auth/url?calendar_id=${cal.id}`, token!
+        `/api/calendars/auth/url?calendar_id=${cal.id}`,
       );
-      window.open(authRes.url, 'google-oauth', 'width=500,height=600');
-      setTimeout(() => qc.invalidateQueries({ queryKey: ['calendars'] }), 3000);
+      window.location.assign(authRes.url);
     } catch (err) {
       toast('error', `Failed to get OAuth URL: ${(err as Error).message}`);
     }
@@ -213,7 +218,7 @@ export function CalendarsPage() {
             />
           </div>
           <p className="text-xs text-slate-500">
-            A Google OAuth popup will open to grant calendar read/write access.
+            You will be redirected to Google to grant calendar read/write access, then returned here.
           </p>
         </div>
       </Modal>

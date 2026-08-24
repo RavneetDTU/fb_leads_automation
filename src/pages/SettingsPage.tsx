@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Save, Copy, Check, ShieldCheck, Key } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Save, Copy, Check, Key } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, put } from '../lib/api';
 import type { PlatformSettings, PlatformSettingsUpdate } from '../types';
@@ -86,14 +85,12 @@ function Field({
 }
 
 export function SettingsPage() {
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery<PlatformSettings>({
     queryKey: ['settings'],
-    queryFn: () => get<PlatformSettings>('/api/settings', token!),
-    enabled: !!token,
+    queryFn: () => get<PlatformSettings>('/api/settings'),
   });
 
   const [form, setForm] = useState<Partial<PlatformSettingsUpdate>>({});
@@ -120,7 +117,7 @@ export function SettingsPage() {
 
   const mutation = useMutation({
     mutationFn: (payload: PlatformSettingsUpdate) =>
-      put<PlatformSettings>('/api/settings', token!, payload),
+      put<PlatformSettings>('/api/settings', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings'] });
       toast('success', 'Settings saved successfully.');
@@ -157,8 +154,6 @@ export function SettingsPage() {
     return <ErrorState message={(error as Error).message} onRetry={refetch} />;
   }
 
-  const tokenStatus = data?.meta_token_status;
-
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       {/* Header */}
@@ -170,7 +165,7 @@ export function SettingsPage() {
             <span className="text-indigo-600">Platform Settings</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">API & Integration Settings</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Manage Meta Lead Ads, WATI WhatsApp credentials, and OpenAI models.</p>
+          <p className="text-xs text-slate-500 mt-0.5">WATI WhatsApp credentials and OpenAI models (secrets live in backend env).</p>
         </div>
         <button
           onClick={handleSave}
@@ -182,45 +177,9 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {/* Meta token warning banner if applicable */}
-      {tokenStatus?.warning && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200/80 rounded-xl p-4 shadow-sm">
-          <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-amber-900 text-sm">
-              ⚠️ Meta Access Token Expiring Soon
-            </p>
-            <p className="text-amber-800 text-xs mt-0.5">
-              Your token will expire in {tokenStatus.days_remaining} days. Please update your token below to maintain uninterrupted lead polling.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Card: Meta API Config */}
-        <SettingsSection
-          title="Meta Lead Ads API Config"
-          subtitle="Configure Meta Graph API App credentials and Page tokens"
-          icon={ShieldCheck}
-        >
-          <Field label="Meta App ID" value={form.meta_app_id ?? ''} onChange={(v) => setField('meta_app_id', v)} />
-          <CopyField label="Current Masked Access Token" value={data?.meta_access_token ?? ''} />
-          <Field label="Update Access Token" type="password" value={''} onChange={(v) => setField('meta_access_token', v || null)} placeholder="Paste new access token to update" />
-          <Field label="Meta Ad Account ID" value={form.meta_ad_account_id ?? ''} onChange={(v) => setField('meta_ad_account_id', v)} />
-          <Field label="Meta App Secret" type="password" value={''} onChange={(v) => setField('meta_app_secret', v || null)} placeholder="Enter App Secret to update" />
-          
-          {/* Visual Status Indicator */}
-          <div className="pt-2">
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>🟢 Token Valid: Expires in {tokenStatus?.days_remaining ?? 59} days</span>
-            </div>
-          </div>
-        </SettingsSection>
-
-        {/* Right Card: WATI / WhatsApp API Config */}
+        {/* WATI / WhatsApp API Config */}
         <SettingsSection
           title="WATI WhatsApp API Config"
           subtitle="Enterprise WhatsApp Gateway instance credentials"

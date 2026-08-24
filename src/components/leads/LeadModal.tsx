@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { get, patch, post } from '../../lib/api';
 import type { LeadDetail, Note, Message, LeadUpdate } from '../../types';
@@ -51,15 +50,13 @@ export function LeadModal({ leadId, open, onClose }: LeadModalProps) {
 // ── Tab 1: Basic Info ────────────────────────────────────────────────────────
 
 function BasicInfoTab({ leadId }: { leadId: string }) {
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showResubs, setShowResubs] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery<LeadDetail>({
     queryKey: ['lead', leadId],
-    queryFn: () => get<LeadDetail>(`/api/leads/${leadId}`, token!),
-    enabled: !!token,
+    queryFn: () => get<LeadDetail>(`/api/leads/${leadId}`),
   });
 
   const [edits, setEdits] = useState<LeadUpdate>({});
@@ -67,7 +64,7 @@ function BasicInfoTab({ leadId }: { leadId: string }) {
 
   const mutation = useMutation({
     mutationFn: (payload: LeadUpdate) =>
-      patch<LeadDetail>(`/api/leads/${leadId}`, token!, payload),
+      patch<LeadDetail>(`/api/leads/${leadId}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
       qc.invalidateQueries({ queryKey: ['leads'] });
@@ -198,7 +195,6 @@ function BasicInfoTab({ leadId }: { leadId: string }) {
 // ── Tab 2: Notes ─────────────────────────────────────────────────────────────
 
 function NotesTab({ leadId }: { leadId: string }) {
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [author, setAuthor] = useState('');
@@ -206,12 +202,11 @@ function NotesTab({ leadId }: { leadId: string }) {
 
   const { data: notes, isLoading, error, refetch } = useQuery<Note[]>({
     queryKey: ['notes', leadId],
-    queryFn: () => get<Note[]>(`/api/leads/${leadId}/notes`, token!),
-    enabled: !!token,
+    queryFn: () => get<Note[]>(`/api/leads/${leadId}/notes`),
   });
 
   const mutation = useMutation({
-    mutationFn: () => post<Note>(`/api/leads/${leadId}/notes`, token!, { author, body }),
+    mutationFn: () => post<Note>(`/api/leads/${leadId}/notes`, { author, body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notes', leadId] });
       setBody('');
@@ -289,12 +284,9 @@ const senderColor: Record<string, string> = {
 };
 
 function WhatsAppTab({ leadId }: { leadId: string }) {
-  const { token } = useAuth();
-
   const { data: messages, isLoading, error, refetch } = useQuery<Message[]>({
     queryKey: ['messages', leadId],
-    queryFn: () => get<Message[]>(`/api/leads/${leadId}/messages`, token!),
-    enabled: !!token,
+    queryFn: () => get<Message[]>(`/api/leads/${leadId}/messages`),
   });
 
   if (isLoading) return <div className="flex justify-center py-10"><Spinner size="md" /></div>;

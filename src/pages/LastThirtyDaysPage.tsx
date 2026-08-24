@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, patch, post } from '../lib/api';
 import type { LeadSummary, LeadPaginatedResponse, LeadListItem, LeadStatus, Campaign } from '../types';
@@ -34,7 +33,6 @@ function AddLeadModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const { token } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState<AddLeadForm>({
     campaign_id: '',
@@ -53,7 +51,7 @@ function AddLeadModal({
     if (!form.campaign_id || !form.full_name.trim() || !form.phone.trim()) return;
     setSubmitting(true);
     try {
-      await post<unknown>('/api/leads', token!, {
+      await post<unknown>('/api/leads', {
         campaign_id: form.campaign_id,
         full_name: form.full_name.trim(),
         phone: form.phone.trim(),
@@ -210,7 +208,6 @@ function MetricStat({ label, value, color, icon: Icon }: {
 }
 
 export function LastThirtyDaysPage() {
-  const { token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -224,8 +221,7 @@ export function LastThirtyDaysPage() {
 
   const summaryQuery = useQuery<LeadSummary>({
     queryKey: ['leads-summary'],
-    queryFn: () => get<LeadSummary>('/api/leads/summary?window_days=30', token!),
-    enabled: !!token,
+    queryFn: () => get<LeadSummary>('/api/leads/summary?window_days=30'),
     refetchInterval: POLL_MS,
   });
 
@@ -240,21 +236,19 @@ export function LastThirtyDaysPage() {
       });
       if (statusFilter) params.set('status', statusFilter);
       if (campaignFilter) params.set('campaign_id', campaignFilter);
-      return get<LeadPaginatedResponse>(`/api/leads?${params}`, token!);
+      return get<LeadPaginatedResponse>(`/api/leads?${params}`);
     },
-    enabled: !!token,
     refetchInterval: POLL_MS,
   });
 
   const campaignsQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
-    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100', token!),
-    enabled: !!token,
+    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100'),
   });
 
   const aiMutation = useMutation({
     mutationFn: ({ leadId, ai_mode }: { leadId: string; ai_mode: boolean }) =>
-      patch<LeadListItem>(`/api/leads/${leadId}`, token!, { ai_mode }),
+      patch<LeadListItem>(`/api/leads/${leadId}`, { ai_mode }),
     onMutate: async ({ leadId, ai_mode }) => {
       const key = ['leads', { statusFilter, campaignFilter, offset }];
       await qc.cancelQueries({ queryKey: key });

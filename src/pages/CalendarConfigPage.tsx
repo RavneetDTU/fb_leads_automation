@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Save, Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { get, put } from '../lib/api';
 import type { CalendarConfigResponse, CalendarConfig, DayHours } from '../types';
@@ -39,7 +38,6 @@ const DEFAULT_CONFIG: CalendarConfig = {
 export function CalendarConfigPage() {
   const { id } = useParams<{ id: string }>();
   const calId = Number(id);
-  const { token } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeSection, setActiveSection] = useState('store');
@@ -49,8 +47,8 @@ export function CalendarConfigPage() {
 
   const { data, isLoading, error, refetch } = useQuery<CalendarConfigResponse>({
     queryKey: ['calendar-config', calId],
-    queryFn: () => get<CalendarConfigResponse>(`/api/calendars/${calId}/config`, token!),
-    enabled: !!token && !isNaN(calId),
+    queryFn: () => get<CalendarConfigResponse>(`/api/calendars/${calId}/config`),
+    enabled: !isNaN(calId),
   });
 
   useEffect(() => {
@@ -63,7 +61,7 @@ export function CalendarConfigPage() {
 
   const mutation = useMutation({
     mutationFn: () =>
-      put<{ status: string; calendar_id: number }>(`/api/calendars/${calId}/config`, token!, { config }),
+      put<{ status: string; calendar_id: number }>(`/api/calendars/${calId}/config`, { config }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['calendar-config', calId] });
       toast('success', 'Calendar settings saved.');

@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { Logo } from '../ui/Logo';
 
 const navItems = [
@@ -11,8 +10,6 @@ const navItems = [
 ];
 
 export function Sidebar() {
-  const { clearToken } = useAuth();
-
   return (
     <aside className="flex flex-col w-64 shrink-0 h-screen bg-[#0F172A] text-slate-400 sticky top-0 overflow-y-auto border-r border-slate-800/80 select-none shadow-xl">
       {/* Brand Header */}
@@ -74,16 +71,6 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Footer / Logout */}
-      <div className="px-4 py-4 border-t border-slate-800/80 bg-slate-950/40">
-        <button
-          onClick={clearToken}
-          className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 transition-all duration-150"
-        >
-          <span className="text-indigo-400 font-mono">→</span>
-          <span>Sign out</span>
-        </button>
-      </div>
     </aside>
   );
 }
