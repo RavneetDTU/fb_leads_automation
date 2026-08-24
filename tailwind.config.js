@@ -10,6 +10,11 @@ export default {
         sans: ['Inter', 'Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'],
       },
       colors: {
+        brand: {
+          50: '#EEF2FF',
+          500: '#4F46E5',
+          600: '#4338CA',
+        },
         indigo: {
           50: '#EEF2FF',
           100: '#E0E7FF',

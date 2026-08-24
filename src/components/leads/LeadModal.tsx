@@ -278,9 +278,9 @@ const senderLabel: Record<string, string> = {
 
 const senderColor: Record<string, string> = {
   lead: 'text-slate-400',
-  ai: 'text-indigo-400',
-  human: 'text-brand-600',
-  system: 'text-amber-500',
+  ai: 'text-indigo-500',
+  human: 'text-indigo-600',
+  system: 'text-amber-600',
 };
 
 function WhatsAppTab({ leadId }: { leadId: string }) {
@@ -296,23 +296,23 @@ function WhatsAppTab({ leadId }: { leadId: string }) {
   }
 
   return (
-    <div className="space-y-3 max-h-96 overflow-y-auto py-2 pr-1">
+    <div className="space-y-3 max-h-[28rem] overflow-y-auto py-2 pr-1">
       {messages.map((msg) => {
         const isOutbound = msg.direction === 'outbound';
         return (
           <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[75%] ${isOutbound ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-              <span className={`text-xs ${senderColor[msg.sender]} font-medium`}>
+              <span className={`text-xs ${senderColor[msg.sender] ?? 'text-slate-500'} font-medium`}>
                 {senderLabel[msg.sender] ?? msg.sender}
               </span>
               <div
-                className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
                   isOutbound
-                    ? 'bg-brand-500 text-white rounded-tr-sm'
+                    ? 'bg-indigo-600 text-white rounded-tr-sm'
                     : 'bg-slate-100 text-slate-800 rounded-tl-sm'
                 }`}
               >
-                {msg.body}
+                {msg.body?.trim() ? msg.body : <span className="italic opacity-80">[No message text]</span>}
               </div>
               <span className="text-xs text-slate-400">
                 {format(new Date(msg.created_at), 'HH:mm')}
