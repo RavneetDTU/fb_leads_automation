@@ -10,6 +10,7 @@ import { Toggle } from '../components/ui/Toggle';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { Modal } from '../components/ui/Modal';
+import { MessageBody } from '../components/chat/MessageBody';
 import { ApiError } from '../lib/api';
 
 const POLL_MS = 10_000;
@@ -244,8 +245,8 @@ export function WhatsAppInboxPage() {
                     (msg.delivery_status || '').toLowerCase(),
                   );
                   return (
-                    <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[65%] flex flex-col ${isOut ? 'items-end' : 'items-start'}`}>
+                    <div key={msg.id} className={`flex min-w-0 ${isOut ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[65%] min-w-0 flex flex-col ${isOut ? 'items-end' : 'items-start'}`}>
                         {/* Explicit Bot / Agent Tag */}
                         <div className="flex items-center gap-1.5 mb-1 px-1">
                           {isAi ? (
@@ -267,13 +268,13 @@ export function WhatsAppInboxPage() {
 
                         {/* WhatsApp Chat Bubbles */}
                         <div
-                          className={`relative px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
+                          className={`relative max-w-full min-w-0 px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
                             isOut
                               ? 'bg-[#DCF8C6] text-slate-900 rounded-2xl rounded-tr-xs border border-[#C5E8AC]'
                               : 'bg-white text-slate-900 rounded-2xl rounded-tl-xs border border-slate-200/80'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                          <MessageBody text={msg.body} />
 
                           {/* Timestamp & Double Checkmarks */}
                           <div className="flex items-center justify-end gap-1 text-[10px] mt-1 text-slate-500 select-none">

@@ -9,6 +9,7 @@ import { Modal } from '../ui/Modal';
 
 import { Spinner, Skeleton } from '../ui/Spinner';
 import { ErrorState, EmptyState } from '../ui/States';
+import { MessageBody } from '../chat/MessageBody';
 
 const ALL_STATUSES = ['NEW', 'TEMPLATE_SENT', 'UNREAD', 'WAITING_FOR_REPLY', 'BOOKED', 'HANDED_OFF'] as const;
 
@@ -300,19 +301,23 @@ function WhatsAppTab({ leadId }: { leadId: string }) {
       {messages.map((msg) => {
         const isOutbound = msg.direction === 'outbound';
         return (
-          <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[75%] ${isOutbound ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+          <div key={msg.id} className={`flex min-w-0 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[75%] min-w-0 ${isOutbound ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
               <span className={`text-xs ${senderColor[msg.sender] ?? 'text-slate-500'} font-medium`}>
                 {senderLabel[msg.sender] ?? msg.sender}
               </span>
               <div
-                className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                className={`max-w-full min-w-0 px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   isOutbound
                     ? 'bg-indigo-600 text-white rounded-tr-sm'
                     : 'bg-slate-100 text-slate-800 rounded-tl-sm'
                 }`}
               >
-                {msg.body?.trim() ? msg.body : <span className="italic opacity-80">[No message text]</span>}
+                {msg.body?.trim() ? (
+                  <MessageBody text={msg.body} onDark={isOutbound} />
+                ) : (
+                  <span className="italic opacity-80">[No message text]</span>
+                )}
               </div>
               <span className="text-xs text-slate-400">
                 {format(new Date(msg.created_at), 'HH:mm')}
