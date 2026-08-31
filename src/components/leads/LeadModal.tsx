@@ -320,7 +320,7 @@ function WhatsAppTab({ leadId }: { leadId: string }) {
                 )}
               </div>
               <span className="text-xs text-slate-400">
-                {format(new Date(msg.created_at), 'HH:mm')}
+                {format(new Date(msg.created_at), 'MMM d, yyyy HH:mm')}
               </span>
             </div>
           </div>

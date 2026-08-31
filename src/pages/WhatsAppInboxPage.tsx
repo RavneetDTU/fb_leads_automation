@@ -278,7 +278,7 @@ export function WhatsAppInboxPage() {
 
                           {/* Timestamp & Double Checkmarks */}
                           <div className="flex items-center justify-end gap-1 text-[10px] mt-1 text-slate-500 select-none">
-                            <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
+                            <span>{format(new Date(msg.created_at), 'MMM d, yyyy HH:mm')}</span>
                             {isOut && (
                               <CheckCheck
                                 size={14}
