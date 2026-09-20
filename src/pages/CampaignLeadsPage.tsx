@@ -13,6 +13,7 @@ import { ErrorState, EmptyState } from '../components/ui/States';
 import { Pagination } from '../components/ui/Pagination';
 import { LeadModal } from '../components/leads/LeadModal';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
+import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
 
 const LIMIT = 50;
 
@@ -24,6 +25,7 @@ export function CampaignLeadsPage() {
   const [offset, setOffset] = useState(0);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateSetOpen, setTemplateSetOpen] = useState(false);
 
   const campaignQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
@@ -95,6 +97,13 @@ export function CampaignLeadsPage() {
           >
             <FileText size={15} />
             Select Template
+          </button>
+          <button
+            onClick={() => setTemplateSetOpen(true)}
+            className="btn-secondary"
+          >
+            <FileText size={15} />
+            Template set ({(campaign?.template_set ?? []).length}/5)
           </button>
         </div>
       </div>
@@ -168,6 +177,14 @@ export function CampaignLeadsPage() {
           campaignId={campaignId}
           open={templateOpen}
           onClose={() => setTemplateOpen(false)}
+        />
+      )}
+      {campaignId && (
+        <TemplateSetPicker
+          campaignId={campaignId}
+          currentSet={campaign?.template_set ?? []}
+          open={templateSetOpen}
+          onClose={() => setTemplateSetOpen(false)}
         />
       )}
     </div>

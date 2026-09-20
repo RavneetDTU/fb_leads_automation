@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, patch, post } from '../lib/api';
+import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
 import type { LeadSummary, LeadPaginatedResponse, LeadListItem, LeadStatus, Campaign } from '../types';
 import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
@@ -189,8 +190,6 @@ function AddLeadModal({
 const LIMIT = 50;
 const POLL_MS = 10_000;
 
-const STATUS_OPTIONS: LeadStatus[] = ['NEW', 'TEMPLATE_SENT', 'UNREAD', 'WAITING_FOR_REPLY', 'BOOKED', 'HANDED_OFF'];
-
 function MetricStat({ label, value, color, icon: Icon }: {
   label: string; value: number | string; color: string; icon: React.ElementType;
 }) {
@@ -215,6 +214,7 @@ export function LastThirtyDaysPage() {
   const [search, setSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
+  const [sort, setSort] = useState<LeadSort>('last_activity_desc');
   const [offset, setOffset] = useState(0);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [addLeadOpen, setAddLeadOpen] = useState(false);
@@ -226,11 +226,11 @@ export function LastThirtyDaysPage() {
   });
 
   const leadsQuery = useQuery<LeadPaginatedResponse>({
-    queryKey: ['leads', { statusFilter, campaignFilter, offset }],
+    queryKey: ['leads', { statusFilter, campaignFilter, sort, offset }],
     queryFn: () => {
       const params = new URLSearchParams({
         days: '30',
-        sort: 'last_activity_desc',
+        sort,
         limit: String(LIMIT),
         offset: String(offset),
       });
@@ -250,7 +250,7 @@ export function LastThirtyDaysPage() {
     mutationFn: ({ leadId, ai_mode }: { leadId: string; ai_mode: boolean }) =>
       patch<LeadListItem>(`/api/leads/${leadId}`, { ai_mode }),
     onMutate: async ({ leadId, ai_mode }) => {
-      const key = ['leads', { statusFilter, campaignFilter, offset }];
+      const key = ['leads', { statusFilter, campaignFilter, sort, offset }];
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<LeadPaginatedResponse>(key);
       qc.setQueryData<LeadPaginatedResponse>(key, (old) =>
@@ -328,7 +328,7 @@ export function LastThirtyDaysPage() {
             className="input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
           />
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0">
           <select
             value={campaignFilter}
             onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); }}
@@ -343,11 +343,23 @@ export function LastThirtyDaysPage() {
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); }}
-            className="select min-w-[170px] bg-slate-50 border-slate-200"
+            className="select min-w-[190px] bg-slate-50 border-slate-200"
             aria-label="Filter by status"
           >
             <option value="">All Statuses</option>
-            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            {ALL_LEAD_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          <select
+            value={sort}
+            onChange={(e) => { setSort(e.target.value as LeadSort); setOffset(0); }}
+            className="select min-w-[160px] bg-slate-50 border-slate-200"
+            aria-label="Sort leads"
+          >
+            {LEAD_SORT_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
           </select>
         </div>
       </div>

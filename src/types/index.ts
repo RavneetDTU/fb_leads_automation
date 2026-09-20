@@ -10,7 +10,35 @@ export type LeadStatus =
   | 'UNREAD'
   | 'WAITING_FOR_REPLY'
   | 'BOOKED'
-  | 'HANDED_OFF';
+  | 'HANDED_OFF'
+  | 'INACTIVE'
+  | 'INACTIVE_HEARING_AID'
+  | 'INACTIVE_FULL_TEST'
+  | 'NO_ANSWER'
+  | 'NOT_INTERESTED'
+  | 'BOOKED_APPOINTMENT'
+  | 'BOOKED_APPOINTMENT_FULL'
+  | 'PLEASE_CALL_LATER'
+  | 'TRANSFER'
+  | 'WILL_CALL_US'
+  | 'NO_SHOW'
+  | 'CLOSED'
+  | 'NO_FUNDS'
+  | 'TOO_YOUNG'
+  | 'TOO_FAR'
+  | 'CANCELLED'
+  | 'FIRST_WHATSAPP_SENT'
+  | 'RECAP_SENT'
+  | 'OPT_OUT'
+  | 'REHEAT_SENT'
+  | 'CUSTOMER'
+  | 'REAPPLIED'
+  | 'OTHER_REFER_TO_NOTES'
+  | 'INACTIVE_REFER_TO_NOTES'
+  | 'MOTHERS_DAY'
+  | 'DECEASED'
+  | 'RESCHEDULE'
+  | 'INTERESTED_NOT_NOW';
 
 export type MessageSender = 'lead' | 'ai' | 'human' | 'system';
 export type MessageDirection = 'inbound' | 'outbound';
@@ -36,6 +64,7 @@ export interface Campaign {
   is_active: boolean;
   assigned_template_name: string | null;
   assigned_template_set_at: string | null;
+  template_set: string[];
   synced_at?: string | null;
   lead_count: number;
   messages_sent_count?: number;
@@ -49,6 +78,7 @@ export interface CampaignUpdate {
   is_active?: boolean | null;
   name?: string | null;
   assigned_template_name?: string | null;
+  template_set?: string[] | null;
 }
 
 export interface WatiTemplate {
@@ -172,6 +202,8 @@ export interface ConversationListItem {
   lead_id: string;
   full_name: string;
   phone: string;
+  campaign_id?: string | null;
+  campaign_name: string | null;
   last_message_preview: string | null;
   last_activity_at: string;
   unread: boolean;

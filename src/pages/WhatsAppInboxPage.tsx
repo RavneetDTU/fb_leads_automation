@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck, PhoneCall, Video, MoreVertical } from 'lucide-react';
+import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, post, patch } from '../lib/api';
-import type { ConversationListItem, Message } from '../types';
+import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
+import type { Campaign, ConversationListItem, LeadDetail, LeadStatus, Message } from '../types';
 import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { Modal } from '../components/ui/Modal';
 import { MessageBody } from '../components/chat/MessageBody';
+import { TemplateSetDropdown } from '../components/chat/TemplateSetDropdown';
 import { ApiError } from '../lib/api';
 
 const POLL_MS = 10_000;
@@ -30,21 +32,54 @@ export function WhatsAppInboxPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [campaignFilter, setCampaignFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
+  const [sort, setSort] = useState<LeadSort>('last_activity_desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [aiConflictModal, setAiConflictModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const convsQuery = useQuery<ConversationListItem[]>({
-    queryKey: ['conversations', search],
-    queryFn: () =>
-      get<ConversationListItem[]>(
-        `/api/inbox/conversations?limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`,
-      ),
+    queryKey: ['conversations', { search, campaignFilter, statusFilter, sort }],
+    queryFn: () => {
+      const params = new URLSearchParams({ limit: '50', sort });
+      if (search) params.set('search', search);
+      if (campaignFilter) params.set('campaign_id', campaignFilter);
+      if (statusFilter) params.set('status', statusFilter);
+      return get<ConversationListItem[]>(`/api/inbox/conversations?${params}`);
+    },
     refetchInterval: POLL_MS,
   });
 
+  const campaignsQuery = useQuery<Campaign[]>({
+    queryKey: ['campaigns'],
+    queryFn: () => get<Campaign[]>('/api/campaigns?limit=100'),
+  });
+
   const selectedConv = convsQuery.data?.find((c) => c.lead_id === selectedId);
+
+  const leadQuery = useQuery<LeadDetail>({
+    queryKey: ['lead', selectedId],
+    queryFn: () => get<LeadDetail>(`/api/leads/${selectedId}`),
+    enabled: !!selectedId,
+  });
+
+  const selectedCampaign =
+    (campaignsQuery.data ?? []).find(
+      (c) => c.id === (selectedConv?.campaign_id ?? leadQuery.data?.campaign_id),
+    ) ?? null;
+
+  const selectedCampaignName =
+    selectedConv?.campaign_name
+    || leadQuery.data?.campaign_name
+    || selectedCampaign?.name
+    || (campaignFilter
+      ? (campaignsQuery.data ?? []).find((c) => c.id === campaignFilter)?.name
+      : null)
+    || null;
+
+  const campaignTemplateSet = selectedCampaign?.template_set ?? [];
 
   const messagesQuery = useQuery<Message[]>({
     queryKey: ['conv-messages', selectedId],
@@ -64,14 +99,14 @@ export function WhatsAppInboxPage() {
       patch(`/api/leads/${selectedId}`, { ai_mode }),
     onMutate: async ({ ai_mode }) => {
       await qc.cancelQueries({ queryKey: ['conversations'] });
-      const prev = qc.getQueryData<ConversationListItem[]>(['conversations', search]);
-      qc.setQueryData<ConversationListItem[]>(['conversations', search], (old) =>
+      const prev = qc.getQueryData<ConversationListItem[]>(['conversations', { search, campaignFilter, statusFilter, sort }]);
+      qc.setQueryData<ConversationListItem[]>(['conversations', { search, campaignFilter, statusFilter, sort }], (old) =>
         old?.map((c) => (c.lead_id === selectedId ? { ...c, ai_mode } : c)),
       );
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['conversations', search], ctx.prev);
+      if (ctx?.prev) qc.setQueryData(['conversations', { search, campaignFilter, statusFilter, sort }], ctx.prev);
       toast('error', 'Failed to toggle AI mode.');
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ['conversations'] }),
@@ -99,6 +134,21 @@ export function WhatsAppInboxPage() {
     sendMutation.mutate(message.trim());
   }
 
+  const sendTemplateMutation = useMutation({
+    mutationFn: (templateName: string) =>
+      post<Message>(`/api/inbox/conversations/${selectedId}/templates`, {
+        template_name: templateName,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['conv-messages', selectedId] });
+      qc.invalidateQueries({ queryKey: ['conversations'] });
+      toast('success', 'Template sent.');
+    },
+    onError: (err: Error) => {
+      toast('error', `Failed to send template: ${err.message}`);
+    },
+  });
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
       {/* Left Panel (35% width): Contact List */}
@@ -120,6 +170,40 @@ export function WhatsAppInboxPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="input pl-10 py-2 text-xs rounded-full bg-white border-slate-200 focus:border-indigo-500 shadow-sm"
             />
+          </div>
+          <div className="grid grid-cols-1 gap-2 mt-3">
+            <select
+              value={campaignFilter}
+              onChange={(e) => setCampaignFilter(e.target.value)}
+              className="select py-1.5 text-xs bg-white border-slate-200"
+              aria-label="Filter by campaign"
+            >
+              <option value="">All Campaigns</option>
+              {(campaignsQuery.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as LeadStatus | '')}
+              className="select py-1.5 text-xs bg-white border-slate-200"
+              aria-label="Filter by status"
+            >
+              <option value="">All Statuses</option>
+              {ALL_LEAD_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as LeadSort)}
+              className="select py-1.5 text-xs bg-white border-slate-200"
+              aria-label="Sort chats"
+            >
+              {LEAD_SORT_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -153,15 +237,18 @@ export function WhatsAppInboxPage() {
                     {getInitials(conv.full_name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <span className={`text-sm truncate ${conv.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
+                    <div className="flex justify-between items-center mb-0.5 gap-2">
+                      <span className={`text-sm truncate min-w-0 ${conv.unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
                         {conv.full_name}
                       </span>
-                      <span className="text-[11px] text-slate-400 shrink-0 ml-1 font-medium">
+                      <StatusBadge status={conv.status} compact />
+                    </div>
+                    <div className="flex justify-between items-baseline gap-2">
+                      <p className="text-[11px] font-mono text-slate-400 truncate">{conv.phone}</p>
+                      <span className="text-[11px] text-slate-400 shrink-0 font-medium">
                         {formatDistanceToNow(new Date(conv.last_activity_at), { addSuffix: false })}
                       </span>
                     </div>
-                    <p className="text-[11px] font-mono text-slate-400 truncate">{conv.phone}</p>
                     <p className="text-xs text-slate-500 truncate leading-relaxed">
                       {conv.last_message_preview}
                     </p>
@@ -200,11 +287,28 @@ export function WhatsAppInboxPage() {
                 <div>
                   <p className="font-bold text-slate-900 text-sm leading-tight">{selectedConv?.full_name}</p>
                   <p className="text-xs font-mono text-slate-500 mt-0.5">{selectedConv?.phone}</p>
+                  <p className="text-[11px] text-indigo-600 font-medium mt-0.5 truncate">
+                    {selectedCampaignName ?? 'No campaign'}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <StatusBadge status={selectedConv?.status ?? 'NEW'} />
                 {selectedConv?.is_old_lead && <OldLeadBadge reason={selectedConv.old_lead_reason} />}
+                <TemplateSetDropdown
+                  templates={campaignTemplateSet}
+                  disabled={!!selectedConv?.is_old_lead || campaignTemplateSet.length === 0}
+                  disabledReason={
+                    selectedConv?.is_old_lead
+                      ? 'Outbound messaging is disabled for old leads'
+                      : 'No campaign templates'
+                  }
+                  sending={sendTemplateMutation.isPending}
+                  onSend={(name) => {
+                    if (!selectedId) return;
+                    sendTemplateMutation.mutate(name);
+                  }}
+                />
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
                   <Bot size={18} className={selectedConv?.ai_mode && !selectedConv?.is_old_lead ? 'text-indigo-600' : 'text-slate-400'} />
                   <span className="text-xs font-semibold text-slate-700">Jarvis AI Mode</span>
@@ -219,11 +323,6 @@ export function WhatsAppInboxPage() {
                     color="indigo"
                     label="Switch AI mode"
                   />
-                </div>
-                <div className="flex items-center gap-1.5 pl-2 text-slate-400 border-l border-slate-200">
-                  <button title="Voice Call" className="p-1.5 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"><PhoneCall size={16} /></button>
-                  <button title="Video Call" className="p-1.5 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"><Video size={16} /></button>
-                  <button title="More Options" className="p-1.5 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"><MoreVertical size={16} /></button>
                 </div>
               </div>
             </div>
@@ -241,6 +340,7 @@ export function WhatsAppInboxPage() {
                   const isOut = msg.direction === 'outbound';
                   const isAi = msg.sender === 'ai';
                   const isHuman = msg.sender === 'human';
+                  const isTemplate = Boolean(msg.template_name);
                   const delivered = ['delivered', 'read', 'replied'].includes(
                     (msg.delivery_status || '').toLowerCase(),
                   );
@@ -252,6 +352,10 @@ export function WhatsAppInboxPage() {
                           {isAi ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 font-bold text-[10px]">
                               <Bot size={11} /> 🤖 Jarvis AI
+                            </span>
+                          ) : isTemplate && isOut ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                              Template
                             </span>
                           ) : isHuman && isOut ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold text-[10px]">

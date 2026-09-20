@@ -4,14 +4,13 @@ import { format } from 'date-fns';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { get, patch, post } from '../../lib/api';
+import { ALL_LEAD_STATUSES } from '../../lib/leadStatuses';
 import type { LeadDetail, Note, Message, LeadUpdate } from '../../types';
 import { Modal } from '../ui/Modal';
 
 import { Spinner, Skeleton } from '../ui/Spinner';
 import { ErrorState, EmptyState } from '../ui/States';
 import { MessageBody } from '../chat/MessageBody';
-
-const ALL_STATUSES = ['NEW', 'TEMPLATE_SENT', 'UNREAD', 'WAITING_FOR_REPLY', 'BOOKED', 'HANDED_OFF'] as const;
 
 interface LeadModalProps {
   leadId: string;
@@ -120,8 +119,8 @@ function BasicInfoTab({ leadId }: { leadId: string }) {
             value={edits.status ?? data.status}
             onChange={(e) => setField('status', e.target.value as LeadDetail['status'])}
           >
-            {ALL_STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {ALL_LEAD_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
         </div>

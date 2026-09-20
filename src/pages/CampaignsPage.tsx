@@ -11,6 +11,7 @@ import { Toggle } from '../components/ui/Toggle';
 import { CardSkeleton } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
+import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
 
 function MetricCard({
   label,
@@ -181,6 +182,7 @@ export function CampaignsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [pickerCampaignId, setPickerCampaignId] = useState<string | null>(null);
+  const [templateSetCampaignId, setTemplateSetCampaignId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const summaryQuery = useQuery<CampaignSummary>({
@@ -292,6 +294,7 @@ export function CampaignsPage() {
                 campaign={campaign}
                 onNavigate={() => navigate(`/campaigns/${campaign.id}/leads`)}
                 onTemplateClick={() => setPickerCampaignId(campaign.id)}
+                onTemplateSetClick={() => setTemplateSetCampaignId(campaign.id)}
               />
             ))}
           </div>
@@ -304,6 +307,15 @@ export function CampaignsPage() {
           campaignId={pickerCampaignId}
           open={!!pickerCampaignId}
           onClose={() => setPickerCampaignId(null)}
+        />
+      )}
+
+      {templateSetCampaignId && (
+        <TemplateSetPicker
+          campaignId={templateSetCampaignId}
+          currentSet={campaigns.find((c) => c.id === templateSetCampaignId)?.template_set ?? []}
+          open={!!templateSetCampaignId}
+          onClose={() => setTemplateSetCampaignId(null)}
         />
       )}
 
@@ -323,12 +335,14 @@ export function CampaignsPage() {
 // ─── Campaign Card (toggle removed) ──────────────────────────────────────────
 
 function CampaignCard({
-  campaign, onNavigate, onTemplateClick,
+  campaign, onNavigate, onTemplateClick, onTemplateSetClick,
 }: {
   campaign: Campaign;
   onNavigate: () => void;
   onTemplateClick: () => void;
+  onTemplateSetClick: () => void;
 }) {
+  const templateSet = campaign.template_set ?? [];
   return (
     <div
       className="card p-6 flex flex-col gap-5 cursor-pointer hover:border-indigo-300 hover:shadow-elevated transition-all duration-150 group bg-white"
@@ -368,6 +382,30 @@ function CampaignCard({
           {campaign.assigned_template_name ? `📄 ${campaign.assigned_template_name}` : '+ Assign WhatsApp Template'}
         </span>
         <span className="text-[10px] text-slate-400 font-mono">Change</span>
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onTemplateSetClick(); }}
+        className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-150 ${
+          templateSet.length
+            ? 'border-indigo-200/80 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100/60'
+            : 'border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 bg-slate-50/60'
+        }`}
+        aria-label="Manage campaign template set"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate">
+            {templateSet.length
+              ? `Template set (${templateSet.length}/5)`
+              : '+ Assign template set'}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono shrink-0">Manage</span>
+        </div>
+        {templateSet.length > 0 && (
+          <p className="mt-1 text-[10px] font-medium text-indigo-700/80 truncate">
+            {templateSet.join(', ')}
+          </p>
+        )}
       </button>
 
       {/* Mini 4-Column Data Grid */}
