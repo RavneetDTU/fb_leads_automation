@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X } from 'lucide-react';
+import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, patch, post } from '../lib/api';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
@@ -190,6 +190,20 @@ function AddLeadModal({
 
 const LIMIT = 50;
 const POLL_MS = 10_000;
+
+function SortArrows({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
+  return (
+    <span className="inline-flex flex-col -space-y-1 ml-0.5" aria-hidden>
+      <ChevronUp size={11} className={active && direction === 'asc' ? 'text-indigo-600' : 'text-slate-300'} />
+      <ChevronDown size={11} className={active && direction === 'desc' ? 'text-indigo-600' : 'text-slate-300'} />
+    </span>
+  );
+}
+
+function When({ value }: { value: string | null | undefined }) {
+  if (!value) return <span className="text-slate-300">—</span>;
+  return <span className="tabular-nums">{format(new Date(value), 'MMM d, HH:mm')}</span>;
+}
 
 function MetricStat({ label, value, color, icon: Icon }: {
   label: string; value: number | string; color: string; icon: React.ElementType;
@@ -380,15 +394,53 @@ export function LastThirtyDaysPage() {
 
       {/* Clean White Table Container */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+            </colgroup>
             <thead className="bg-slate-50/80 border-b border-slate-200/80">
               <tr>
-                {['Lead ID', 'Created', 'Contact Name & Phone', 'Campaign', 'Branch', 'Status', 'AI Mode', 'Action'].map((h) => (
-                  <th key={h} className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Contact</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Campaign</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSort(sort === 'created_desc' ? 'created_asc' : 'created_desc');
+                      setOffset(0);
+                    }}
+                    className="inline-flex items-center tracking-normal hover:text-slate-800"
+                    aria-label="Sort by created date"
+                  >
+                    Created
+                    <SortArrows active={sort === 'created_asc' || sort === 'created_desc'} direction={sort === 'created_asc' ? 'asc' : 'desc'} />
+                  </button>
+                </th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Branch</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSort(sort === 'last_reply_desc' ? 'last_reply_asc' : 'last_reply_desc');
+                      setOffset(0);
+                    }}
+                    className="inline-flex items-center tracking-normal hover:text-slate-800"
+                    aria-label="Sort by last reply"
+                  >
+                    Last reply
+                    <SortArrows active={sort === 'last_reply_asc' || sort === 'last_reply_desc'} direction={sort === 'last_reply_asc' ? 'asc' : 'desc'} />
+                  </button>
+                </th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">AI</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -409,27 +461,29 @@ export function LastThirtyDaysPage() {
                     className="hover:bg-slate-50/80 cursor-pointer transition-colors duration-150"
                     onClick={() => setSelectedLead(lead.id)}
                   >
-                    <td className="px-5 py-4 text-slate-400 font-mono text-xs font-medium">{lead.id.slice(0, 8)}…</td>
-                    <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
-                      {format(new Date(lead.created_at), 'MMM d, HH:mm')}
+                    <td className="px-3 py-3">
+                      <p className="font-semibold text-slate-900 leading-tight truncate">{lead.full_name}</p>
+                      <p className="font-mono text-xs text-slate-500 mt-0.5 truncate">{lead.phone}</p>
                     </td>
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <p className="font-bold text-slate-900 text-sm">{lead.full_name}</p>
-                      <p className="text-xs font-mono text-slate-500 mt-0.5">{lead.phone}</p>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600 text-xs max-w-[160px] truncate font-medium">
+                    <td className="px-3 py-3 text-slate-700 truncate" title={lead.campaign_name ?? 'Direct Inbound'}>
                       {lead.campaign_name ?? 'Direct Inbound'}
                     </td>
-                    <td className="px-5 py-4 text-slate-600 text-xs whitespace-nowrap">
-                      {lead.branch ?? '—'}
+                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
+                      <When value={lead.created_at} />
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge status={lead.status} />
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <StatusBadge status={lead.status} compact />
                         {lead.is_old_lead && <OldLeadBadge reason={lead.old_lead_reason} />}
                       </div>
                     </td>
-                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 py-3 text-slate-700 truncate" title={lead.branch ?? undefined}>
+                      {lead.branch?.replace(/ Branch$/, '') ?? '—'}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
+                      <When value={lead.last_reply_at} />
+                    </td>
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <div title={lead.is_old_lead ? 'AI mode disabled for historical leads' : undefined}>
                         <Toggle
                           enabled={lead.is_old_lead ? false : lead.ai_mode}
@@ -444,22 +498,23 @@ export function LastThirtyDaysPage() {
                         />
                       </div>
                     </td>
-                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate('/whatsapp')}
-                          className="btn-secondary text-xs px-2.5 py-1.5 gap-1.5"
+                          className="p-1.5 rounded-lg border border-slate-200 text-emerald-600 hover:bg-slate-50 transition-colors"
                           title="Open WhatsApp Chat"
+                          aria-label="Open WhatsApp Chat"
                         >
-                          <MessageSquare size={13} className="text-emerald-600" />
-                          <span>Chat</span>
+                          <MessageSquare size={14} />
                         </button>
                         <button
                           onClick={() => toast('info', 'Call audio logging feature is available for voice-agent calls.')}
                           className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-colors"
                           title="Play Call Audio"
+                          aria-label="Play Call Audio"
                         >
-                          <PhoneCall size={13} />
+                          <PhoneCall size={14} />
                         </button>
                       </div>
                     </td>
@@ -468,7 +523,6 @@ export function LastThirtyDaysPage() {
               )}
             </tbody>
           </table>
-        </div>
         {leadsQuery.data && (
           <Pagination
             total={leadsQuery.data.total}
