@@ -46,11 +46,19 @@ export const STATUS_LABELS: Record<LeadStatus, string> = Object.fromEntries(
   ALL_LEAD_STATUSES.map((s) => [s.value, s.label]),
 ) as Record<LeadStatus, string>;
 
-export type LeadSort = 'last_activity_desc' | 'created_desc' | 'created_asc' | 'name_asc';
+export type LeadSort =
+  | 'last_activity_desc'
+  | 'created_desc'
+  | 'created_asc'
+  | 'last_reply_desc'
+  | 'last_reply_asc'
+  | 'name_asc';
 
 export const LEAD_SORT_OPTIONS: { value: LeadSort; label: string }[] = [
   { value: 'last_activity_desc', label: 'Last activity' },
   { value: 'created_desc', label: 'Newest created' },
   { value: 'created_asc', label: 'Oldest created' },
+  { value: 'last_reply_desc', label: 'Newest reply' },
+  { value: 'last_reply_asc', label: 'Oldest reply' },
   { value: 'name_asc', label: 'Name A–Z' },
 ];

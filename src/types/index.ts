@@ -126,6 +126,7 @@ export interface LeadListItem {
   imported_at?: string | null;
   ai_mode: boolean;
   last_activity_at: string;
+  last_reply_at?: string | null;
   created_at: string;
 }
 
