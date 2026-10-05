@@ -65,6 +65,10 @@ export interface Campaign {
   assigned_template_name: string | null;
   assigned_template_set_at: string | null;
   template_set: string[];
+  followup_template_name: string | null;
+  final_template_name: string | null;
+  followup_delay_hours: number;
+  final_delay_hours: number;
   synced_at?: string | null;
   lead_count: number;
   messages_sent_count?: number;
@@ -79,6 +83,10 @@ export interface CampaignUpdate {
   name?: string | null;
   assigned_template_name?: string | null;
   template_set?: string[] | null;
+  followup_template_name?: string | null;
+  final_template_name?: string | null;
+  followup_delay_hours?: number | null;
+  final_delay_hours?: number | null;
 }
 
 export interface WatiTemplate {

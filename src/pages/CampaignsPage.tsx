@@ -12,6 +12,7 @@ import { CardSkeleton } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
 import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
+import { FollowupSequencePicker } from '../components/campaigns/FollowupSequencePicker';
 
 function MetricCard({
   label,
@@ -183,6 +184,7 @@ export function CampaignsPage() {
   const qc = useQueryClient();
   const [pickerCampaignId, setPickerCampaignId] = useState<string | null>(null);
   const [templateSetCampaignId, setTemplateSetCampaignId] = useState<string | null>(null);
+  const [followupCampaignId, setFollowupCampaignId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const summaryQuery = useQuery<CampaignSummary>({
@@ -295,6 +297,7 @@ export function CampaignsPage() {
                 onNavigate={() => navigate(`/campaigns/${campaign.id}/leads`)}
                 onTemplateClick={() => setPickerCampaignId(campaign.id)}
                 onTemplateSetClick={() => setTemplateSetCampaignId(campaign.id)}
+                onFollowupClick={() => setFollowupCampaignId(campaign.id)}
               />
             ))}
           </div>
@@ -319,6 +322,18 @@ export function CampaignsPage() {
         />
       )}
 
+      {followupCampaignId && (
+        <FollowupSequencePicker
+          campaignId={followupCampaignId}
+          followupTemplateName={campaigns.find((c) => c.id === followupCampaignId)?.followup_template_name ?? null}
+          finalTemplateName={campaigns.find((c) => c.id === followupCampaignId)?.final_template_name ?? null}
+          followupDelayHours={campaigns.find((c) => c.id === followupCampaignId)?.followup_delay_hours ?? 24}
+          finalDelayHours={campaigns.find((c) => c.id === followupCampaignId)?.final_delay_hours ?? 24}
+          open={!!followupCampaignId}
+          onClose={() => setFollowupCampaignId(null)}
+        />
+      )}
+
       {/* Create Manual Campaign modal */}
       <CreateCampaignModal
         open={createOpen}
@@ -335,12 +350,13 @@ export function CampaignsPage() {
 // ─── Campaign Card (toggle removed) ──────────────────────────────────────────
 
 function CampaignCard({
-  campaign, onNavigate, onTemplateClick, onTemplateSetClick,
+  campaign, onNavigate, onTemplateClick, onTemplateSetClick, onFollowupClick,
 }: {
   campaign: Campaign;
   onNavigate: () => void;
   onTemplateClick: () => void;
   onTemplateSetClick: () => void;
+  onFollowupClick: () => void;
 }) {
   const templateSet = campaign.template_set ?? [];
   return (
@@ -404,6 +420,34 @@ function CampaignCard({
         {templateSet.length > 0 && (
           <p className="mt-1 text-[10px] font-medium text-indigo-700/80 truncate">
             {templateSet.join(', ')}
+          </p>
+        )}
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onFollowupClick(); }}
+        className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-150 ${
+          campaign.followup_template_name
+            ? 'border-amber-200/80 bg-amber-50/60 text-amber-900 hover:bg-amber-100/60'
+            : 'border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 bg-slate-50/60'
+        }`}
+        aria-label="Manage follow-up sequence"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate">
+            {campaign.followup_template_name
+              ? `Follow-up: ${campaign.followup_template_name}`
+              : '+ Follow-up sequence'}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+            {campaign.followup_delay_hours ?? 24}h
+          </span>
+        </div>
+        {campaign.followup_template_name && (
+          <p className="mt-1 text-[10px] font-medium text-amber-800/80 truncate">
+            {campaign.final_template_name
+              ? `Final: ${campaign.final_template_name} after ${campaign.final_delay_hours ?? 24}h`
+              : 'Final template not set'}
           </p>
         )}
       </button>

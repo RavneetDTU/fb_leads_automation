@@ -14,6 +14,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { LeadModal } from '../components/leads/LeadModal';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
 import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
+import { FollowupSequencePicker } from '../components/campaigns/FollowupSequencePicker';
 
 const LIMIT = 50;
 
@@ -26,6 +27,7 @@ export function CampaignLeadsPage() {
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateSetOpen, setTemplateSetOpen] = useState(false);
+  const [followupOpen, setFollowupOpen] = useState(false);
 
   const campaignQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
@@ -104,6 +106,13 @@ export function CampaignLeadsPage() {
           >
             <FileText size={15} />
             Template set ({(campaign?.template_set ?? []).length}/5)
+          </button>
+          <button
+            onClick={() => setFollowupOpen(true)}
+            className="btn-secondary"
+          >
+            <FileText size={15} />
+            Follow-up sequence
           </button>
         </div>
       </div>
@@ -185,6 +194,17 @@ export function CampaignLeadsPage() {
           currentSet={campaign?.template_set ?? []}
           open={templateSetOpen}
           onClose={() => setTemplateSetOpen(false)}
+        />
+      )}
+      {campaignId && (
+        <FollowupSequencePicker
+          campaignId={campaignId}
+          followupTemplateName={campaign?.followup_template_name ?? null}
+          finalTemplateName={campaign?.final_template_name ?? null}
+          followupDelayHours={campaign?.followup_delay_hours ?? 24}
+          finalDelayHours={campaign?.final_delay_hours ?? 24}
+          open={followupOpen}
+          onClose={() => setFollowupOpen(false)}
         />
       )}
     </div>
