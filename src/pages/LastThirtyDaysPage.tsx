@@ -6,6 +6,7 @@ import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPl
 import { useToast } from '../context/ToastContext';
 import { get, patch, post } from '../lib/api';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
+import { BRANCH_OPTIONS } from '../lib/branches';
 import type { LeadSummary, LeadPaginatedResponse, LeadListItem, LeadStatus, Campaign } from '../types';
 import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
@@ -213,6 +214,7 @@ export function LastThirtyDaysPage() {
 
   const [search, setSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
   const [sort, setSort] = useState<LeadSort>('last_activity_desc');
   const [offset, setOffset] = useState(0);
@@ -226,7 +228,7 @@ export function LastThirtyDaysPage() {
   });
 
   const leadsQuery = useQuery<LeadPaginatedResponse>({
-    queryKey: ['leads', { statusFilter, campaignFilter, sort, offset }],
+    queryKey: ['leads', { statusFilter, campaignFilter, branchFilter, sort, offset }],
     queryFn: () => {
       const params = new URLSearchParams({
         days: '30',
@@ -236,6 +238,7 @@ export function LastThirtyDaysPage() {
       });
       if (statusFilter) params.set('status', statusFilter);
       if (campaignFilter) params.set('campaign_id', campaignFilter);
+      if (branchFilter) params.set('branch', branchFilter);
       return get<LeadPaginatedResponse>(`/api/leads?${params}`);
     },
     refetchInterval: POLL_MS,
@@ -317,22 +320,22 @@ export function LastThirtyDaysPage() {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="card p-4 flex flex-col md:flex-row gap-3 items-center">
-        <div className="relative flex-1 w-full">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="search"
-            placeholder="Search lead name, phone number, or campaign..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0">
+      <div className="card px-3 py-2">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-[minmax(200px,1.3fr)_repeat(4,minmax(0,1fr))]">
+          <div className="relative col-span-2 lg:col-span-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Search name, phone, or campaign"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pl-8 py-1.5 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+            />
+          </div>
           <select
             value={campaignFilter}
             onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); }}
-            className="select min-w-[180px] bg-slate-50 border-slate-200"
+            className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Filter by campaign"
           >
             <option value="">All Campaigns</option>
@@ -341,9 +344,20 @@ export function LastThirtyDaysPage() {
             ))}
           </select>
           <select
+            value={branchFilter}
+            onChange={(e) => { setBranchFilter(e.target.value); setOffset(0); }}
+            className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
+            aria-label="Filter by branch"
+          >
+            <option value="">All branches</option>
+            {BRANCH_OPTIONS.map((branch) => (
+              <option key={branch} value={branch}>{branch}</option>
+            ))}
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); }}
-            className="select min-w-[190px] bg-slate-50 border-slate-200"
+            className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Filter by status"
           >
             <option value="">All Statuses</option>
@@ -354,7 +368,7 @@ export function LastThirtyDaysPage() {
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value as LeadSort); setOffset(0); }}
-            className="select min-w-[160px] bg-slate-50 border-slate-200"
+            className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Sort leads"
           >
             {LEAD_SORT_OPTIONS.map((s) => (
@@ -370,7 +384,7 @@ export function LastThirtyDaysPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50/80 border-b border-slate-200/80">
               <tr>
-                {['Lead ID', 'Created', 'Contact Name & Phone', 'Campaign', 'Status', 'AI Mode', 'Action'].map((h) => (
+                {['Lead ID', 'Created', 'Contact Name & Phone', 'Campaign', 'Branch', 'Status', 'AI Mode', 'Action'].map((h) => (
                   <th key={h} className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -379,12 +393,12 @@ export function LastThirtyDaysPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {leadsQuery.isLoading ? (
-                <tr><td colSpan={7}><TableSkeleton rows={8} cols={7} /></td></tr>
+                <tr><td colSpan={8}><TableSkeleton rows={8} cols={8} /></td></tr>
               ) : leadsQuery.error ? (
-                <tr><td colSpan={7}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
+                <tr><td colSpan={8}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <EmptyState title="No leads matched filters" description="Try clearing your search query or dropdown selections." />
                   </td>
                 </tr>
@@ -405,6 +419,9 @@ export function LastThirtyDaysPage() {
                     </td>
                     <td className="px-5 py-4 text-slate-600 text-xs max-w-[160px] truncate font-medium">
                       {lead.campaign_name ?? 'Direct Inbound'}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 text-xs whitespace-nowrap">
+                      {lead.branch ?? '—'}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5">

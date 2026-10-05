@@ -118,6 +118,7 @@ export interface LeadListItem {
   full_name: string;
   phone: string;
   campaign_name: string | null;
+  branch?: string | null;
   status: LeadStatus;
   source?: LeadSource;
   is_old_lead?: boolean;
@@ -153,6 +154,7 @@ export interface LeadDetail {
   email: string | null;
   campaign_id: string;
   campaign_name: string | null;
+  branch?: string | null;
   meta_ad_id: string | null;
   meta_ad_name: string | null;
   meta_form_fields: Record<string, unknown>;
@@ -212,6 +214,7 @@ export interface ConversationListItem {
   phone: string;
   campaign_id?: string | null;
   campaign_name: string | null;
+  branch?: string | null;
   last_message_preview: string | null;
   last_activity_at: string;
   unread: boolean;

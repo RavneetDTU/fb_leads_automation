@@ -5,6 +5,7 @@ import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck } from 'lucide-
 import { useToast } from '../context/ToastContext';
 import { get, post, patch } from '../lib/api';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
+import { BRANCH_OPTIONS } from '../lib/branches';
 import type { Campaign, ConversationListItem, LeadDetail, LeadStatus, Message } from '../types';
 import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
@@ -33,6 +34,7 @@ export function WhatsAppInboxPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
   const [sort, setSort] = useState<LeadSort>('last_activity_desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,11 +43,12 @@ export function WhatsAppInboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const convsQuery = useQuery<ConversationListItem[]>({
-    queryKey: ['conversations', { search, campaignFilter, statusFilter, sort }],
+    queryKey: ['conversations', { search, campaignFilter, branchFilter, statusFilter, sort }],
     queryFn: () => {
       const params = new URLSearchParams({ limit: '50', sort });
       if (search) params.set('search', search);
       if (campaignFilter) params.set('campaign_id', campaignFilter);
+      if (branchFilter) params.set('branch', branchFilter);
       if (statusFilter) params.set('status', statusFilter);
       return get<ConversationListItem[]>(`/api/inbox/conversations?${params}`);
     },
@@ -154,28 +157,28 @@ export function WhatsAppInboxPage() {
       {/* Left Panel (35% width): Contact List */}
       <div className="w-[35%] min-w-[320px] max-w-[420px] shrink-0 flex flex-col border-r border-slate-200 bg-white shadow-soft">
         {/* Search Header */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50/70">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">WhatsApp Chats</h2>
-            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+        <div className="px-3 py-2.5 border-b border-slate-200 bg-slate-50/70">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">WhatsApp Chats</h2>
+            <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
               Wati Connected
             </span>
           </div>
           <div className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
               placeholder="Search contacts or chats…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input pl-10 py-2 text-xs rounded-full bg-white border-slate-200 focus:border-indigo-500 shadow-sm"
+              className="input pl-8 py-1.5 text-xs rounded-full bg-white border-slate-200 focus:border-indigo-500 shadow-sm"
             />
           </div>
-          <div className="grid grid-cols-1 gap-2 mt-3">
+          <div className="grid grid-cols-2 gap-1.5 mt-2">
             <select
               value={campaignFilter}
               onChange={(e) => setCampaignFilter(e.target.value)}
-              className="select py-1.5 text-xs bg-white border-slate-200"
+              className="select min-w-0 py-1 text-[11px] bg-white border-slate-200"
               aria-label="Filter by campaign"
             >
               <option value="">All Campaigns</option>
@@ -184,9 +187,20 @@ export function WhatsAppInboxPage() {
               ))}
             </select>
             <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="select min-w-0 py-1 text-[11px] bg-white border-slate-200"
+              aria-label="Filter by branch"
+            >
+              <option value="">All branches</option>
+              {BRANCH_OPTIONS.map((branch) => (
+                <option key={branch} value={branch}>{branch}</option>
+              ))}
+            </select>
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as LeadStatus | '')}
-              className="select py-1.5 text-xs bg-white border-slate-200"
+              className="select min-w-0 py-1 text-[11px] bg-white border-slate-200"
               aria-label="Filter by status"
             >
               <option value="">All Statuses</option>
@@ -197,7 +211,7 @@ export function WhatsAppInboxPage() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as LeadSort)}
-              className="select py-1.5 text-xs bg-white border-slate-200"
+              className="select min-w-0 py-1 text-[11px] bg-white border-slate-200"
               aria-label="Sort chats"
             >
               {LEAD_SORT_OPTIONS.map((s) => (
@@ -244,7 +258,9 @@ export function WhatsAppInboxPage() {
                       <StatusBadge status={conv.status} compact />
                     </div>
                     <div className="flex justify-between items-baseline gap-2">
-                      <p className="text-[11px] font-mono text-slate-400 truncate">{conv.phone}</p>
+                      <p className="text-[11px] font-mono text-slate-400 truncate">
+                        {conv.phone}{conv.branch ? ` · ${conv.branch}` : ''}
+                      </p>
                       <span className="text-[11px] text-slate-400 shrink-0 font-medium">
                         {formatDistanceToNow(new Date(conv.last_activity_at), { addSuffix: false })}
                       </span>
