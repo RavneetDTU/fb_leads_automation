@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus } from 'lucide-react';
+import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus, Store } from 'lucide-react';
 import { Logo } from '../ui/Logo';
 
 const navItems = [
@@ -65,6 +65,27 @@ export function Sidebar() {
               <>
                 <CalendarPlus size={18} className={isActive ? 'text-indigo-400' : 'text-slate-400'} />
                 <span>Store Branches</span>
+              </>
+            )}
+          </NavLink>
+        </div>
+
+        <div className="pt-6 mt-4 border-t border-slate-800/80">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 mb-2">Promotional Stand</p>
+          <NavLink
+            to="/promotional-stand"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                isActive
+                  ? 'bg-slate-800 text-white shadow-sm border-l-4 border-indigo-500'
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Store size={18} className={isActive ? 'text-indigo-400' : 'text-slate-400'} />
+                <span>Stand leads</span>
               </>
             )}
           </NavLink>

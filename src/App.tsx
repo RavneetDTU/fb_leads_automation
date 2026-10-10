@@ -7,6 +7,7 @@ import { WhatsAppInboxPage } from './pages/WhatsAppInboxPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CalendarsPage } from './pages/CalendarsPage';
 import { CalendarConfigPage } from './pages/CalendarConfigPage';
+import { PromotionalStandPage } from './pages/PromotionalStandPage';
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/calendars" element={<CalendarsPage />} />
           <Route path="/settings/calendars/:id" element={<CalendarConfigPage />} />
+          <Route path="/promotional-stand" element={<PromotionalStandPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/campaigns" replace />} />
       </Routes>
