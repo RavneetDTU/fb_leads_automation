@@ -7,6 +7,7 @@ export const PIPELINE_STATUSES: { value: LeadStatus; label: string }[] = [
   { value: 'WAITING_FOR_REPLY', label: 'Hot Lead / Qualified' },
   { value: 'BOOKED', label: 'Booked / Responded' },
   { value: 'HANDED_OFF', label: 'Handed Off' },
+  { value: 'SUPERVISOR_FOLLOWUP', label: 'Supervisor follow-up' },
 ];
 
 export const CRM_STATUSES: { value: LeadStatus; label: string }[] = [

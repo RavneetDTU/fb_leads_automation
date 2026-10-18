@@ -11,6 +11,7 @@ export type LeadStatus =
   | 'WAITING_FOR_REPLY'
   | 'BOOKED'
   | 'HANDED_OFF'
+  | 'SUPERVISOR_FOLLOWUP'
   | 'INACTIVE'
   | 'INACTIVE_HEARING_AID'
   | 'INACTIVE_FULL_TEST'
