@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Send, Users, Eye, CheckCircle, MessageSquare, PhoneCall, UserPlus, X, ChevronUp, ChevronDown, Download } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, patch, post } from '../lib/api';
+import { downloadLeadsCsv } from '../lib/csv';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
 import { BRANCH_OPTIONS } from '../lib/branches';
 import type { LeadSummary, LeadPaginatedResponse, LeadListItem, LeadStatus, Campaign } from '../types';
@@ -13,6 +14,7 @@ import { Toggle } from '../components/ui/Toggle';
 import { Skeleton, TableSkeleton } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { Pagination } from '../components/ui/Pagination';
+import { BulkTemplateModal } from '../components/leads/BulkTemplateModal';
 import { LeadModal } from '../components/leads/LeadModal';
 
 // ─── Add Lead Modal ────────────────────────────────────────────────────────────
@@ -234,6 +236,9 @@ export function LastThirtyDaysPage() {
   const [offset, setOffset] = useState(0);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [selected, setSelected] = useState<Record<string, LeadListItem>>({});
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   const summaryQuery = useQuery<LeadSummary>({
     queryKey: ['leads-summary'],
@@ -285,6 +290,42 @@ export function LastThirtyDaysPage() {
   const filtered = (leadsQuery.data?.items ?? []).filter((l) =>
     `${l.full_name} ${l.phone} ${l.campaign_name ?? ''}`.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const selectedCount = Object.keys(selected).length;
+  const pageSelectedCount = filtered.filter((lead) => selected[lead.id]).length;
+  const allPageSelected = filtered.length > 0 && pageSelectedCount === filtered.length;
+
+  useEffect(() => {
+    if (!headerCheckboxRef.current) return;
+    headerCheckboxRef.current.indeterminate = pageSelectedCount > 0 && !allPageSelected;
+  }, [pageSelectedCount, allPageSelected]);
+
+  function toggleLead(lead: LeadListItem) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[lead.id]) delete next[lead.id];
+      else next[lead.id] = lead;
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (allPageSelected) {
+        for (const lead of filtered) delete next[lead.id];
+      } else {
+        for (const lead of filtered) next[lead.id] = lead;
+      }
+      return next;
+    });
+  }
+
+  function changeSort(next: LeadSort) {
+    setSort(next);
+    setOffset(0);
+    setSelected({});
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -348,7 +389,7 @@ export function LastThirtyDaysPage() {
           </div>
           <select
             value={campaignFilter}
-            onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); }}
+            onChange={(e) => { setCampaignFilter(e.target.value); setOffset(0); setSelected({}); }}
             className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Filter by campaign"
           >
@@ -359,7 +400,7 @@ export function LastThirtyDaysPage() {
           </select>
           <select
             value={branchFilter}
-            onChange={(e) => { setBranchFilter(e.target.value); setOffset(0); }}
+            onChange={(e) => { setBranchFilter(e.target.value); setOffset(0); setSelected({}); }}
             className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Filter by branch"
           >
@@ -370,7 +411,7 @@ export function LastThirtyDaysPage() {
           </select>
           <select
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); }}
+            onChange={(e) => { setStatusFilter(e.target.value as LeadStatus | ''); setOffset(0); setSelected({}); }}
             className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Filter by status"
           >
@@ -381,7 +422,7 @@ export function LastThirtyDaysPage() {
           </select>
           <select
             value={sort}
-            onChange={(e) => { setSort(e.target.value as LeadSort); setOffset(0); }}
+            onChange={(e) => { setSort(e.target.value as LeadSort); setOffset(0); setSelected({}); }}
             className="select min-w-0 py-1.5 text-xs bg-slate-50 border-slate-200"
             aria-label="Sort leads"
           >
@@ -392,29 +433,69 @@ export function LastThirtyDaysPage() {
         </div>
       </div>
 
+      {selectedCount > 0 && (
+        <div className="card px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-medium text-slate-700">
+            {selectedCount} lead{selectedCount === 1 ? '' : 's'} selected
+            <button
+              type="button"
+              onClick={() => setSelected({})}
+              className="ml-3 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+            >
+              Clear
+            </button>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => downloadLeadsCsv(Object.values(selected))}
+            >
+              <Download size={15} />
+              Export CSV
+            </button>
+            <button type="button" className="btn-primary" onClick={() => setTemplateOpen(true)}>
+              <Send size={15} />
+              Send template
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Clean White Table Container */}
       <div className="card overflow-hidden">
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
+              <col className="w-10" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
             </colgroup>
             <thead className="bg-slate-50/80 border-b border-slate-200/80">
               <tr>
+                <th className="px-3 py-3">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={togglePage}
+                    disabled={filtered.length === 0}
+                    aria-label="Select all leads on this page"
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </th>
                 <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Contact</th>
                 <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Campaign</th>
                 <th className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   <button
                     type="button"
                     onClick={() => {
-                      setSort(sort === 'created_desc' ? 'created_asc' : 'created_desc');
-                      setOffset(0);
+                      changeSort(sort === 'created_desc' ? 'created_asc' : 'created_desc');
                     }}
                     className="inline-flex items-center tracking-normal hover:text-slate-800"
                     aria-label="Sort by created date"
@@ -429,8 +510,7 @@ export function LastThirtyDaysPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSort(sort === 'last_reply_desc' ? 'last_reply_asc' : 'last_reply_desc');
-                      setOffset(0);
+                      changeSort(sort === 'last_reply_desc' ? 'last_reply_asc' : 'last_reply_desc');
                     }}
                     className="inline-flex items-center tracking-normal hover:text-slate-800"
                     aria-label="Sort by last reply"
@@ -445,12 +525,12 @@ export function LastThirtyDaysPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {leadsQuery.isLoading ? (
-                <tr><td colSpan={8}><TableSkeleton rows={8} cols={8} /></td></tr>
+                <tr><td colSpan={9}><TableSkeleton rows={8} cols={8} /></td></tr>
               ) : leadsQuery.error ? (
-                <tr><td colSpan={8}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
+                <tr><td colSpan={9}><ErrorState message={(leadsQuery.error as Error).message} onRetry={leadsQuery.refetch} /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <EmptyState title="No leads matched filters" description="Try clearing your search query or dropdown selections." />
                   </td>
                 </tr>
@@ -458,9 +538,20 @@ export function LastThirtyDaysPage() {
                 filtered.map((lead) => (
                   <tr
                     key={lead.id}
-                    className="hover:bg-slate-50/80 cursor-pointer transition-colors duration-150"
+                    className={`cursor-pointer transition-colors duration-150 ${
+                      selected[lead.id] ? 'bg-indigo-50/70 hover:bg-indigo-50' : 'hover:bg-slate-50/80'
+                    }`}
                     onClick={() => setSelectedLead(lead.id)}
                   >
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={!!selected[lead.id]}
+                        onChange={() => toggleLead(lead)}
+                        aria-label={`Select ${lead.full_name}`}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                    </td>
                     <td className="px-3 py-3">
                       <p className="font-semibold text-slate-900 leading-tight truncate">{lead.full_name}</p>
                       <p className="font-mono text-xs text-slate-500 mt-0.5 truncate">{lead.phone}</p>
@@ -536,6 +627,13 @@ export function LastThirtyDaysPage() {
       {selectedLead && (
         <LeadModal leadId={selectedLead} open={!!selectedLead} onClose={() => setSelectedLead(null)} />
       )}
+
+      <BulkTemplateModal
+        open={templateOpen}
+        leads={Object.values(selected)}
+        onClose={() => setTemplateOpen(false)}
+        onSent={() => setSelected({})}
+      />
 
       {/* Add Lead modal */}
       <AddLeadModal

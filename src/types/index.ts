@@ -115,6 +115,22 @@ export interface ApplyTemplateResponse {
   skipped_lead_ids: string[];
 }
 
+export interface BulkTemplateSkip {
+  id: string;
+  reason: string;
+}
+
+export interface BulkTemplateFail {
+  id: string;
+  error: string;
+}
+
+export interface BulkTemplateResponse {
+  sent: number;
+  skipped: BulkTemplateSkip[];
+  failed: BulkTemplateFail[];
+}
+
 // --- Leads ---
 
 export interface LeadSummary {
