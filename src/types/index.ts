@@ -90,12 +90,23 @@ export interface CampaignUpdate {
   final_delay_hours?: number | null;
 }
 
+export interface WatiTemplateButton {
+  type: string;
+  text: string;
+  url: string | null;
+}
+
 export interface WatiTemplate {
   name: string;
   language: string;
   category: string;
   body_preview: string;
   placeholder_count: number;
+  header_type?: string | null;
+  header_text?: string | null;
+  header_media?: boolean;
+  footer?: string | null;
+  buttons?: WatiTemplateButton[];
 }
 
 export interface ApplyTemplateResponse {

@@ -3,20 +3,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { get, post, patch } from '../lib/api';
+import { apiUrl, get, post, patch } from '../lib/api';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
 import { BRANCH_OPTIONS } from '../lib/branches';
-import type { Campaign, ConversationListItem, LeadDetail, LeadStatus, Message } from '../types';
+import type { Campaign, ConversationListItem, LeadDetail, LeadStatus, Message, WatiTemplate } from '../types';
 import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { Modal } from '../components/ui/Modal';
+import { ChatImage } from '../components/chat/ChatImage';
 import { MessageBody } from '../components/chat/MessageBody';
+import { TemplateChrome } from '../components/chat/TemplateChrome';
 import { TemplateSetDropdown } from '../components/chat/TemplateSetDropdown';
 import { ApiError } from '../lib/api';
 
 const POLL_MS = 10_000;
+
+function leadMedia(msg: Message): { kind: string; file: string } | null {
+  const media = msg.template_params?.media;
+  if (!media || typeof media !== 'object') return null;
+  const kind = String((media as { kind?: unknown }).kind || '');
+  const file = String((media as { file?: unknown }).file || '');
+  if (!file.startsWith('data/')) return null;
+  return { kind, file };
+}
 
 function getInitials(name: string): string {
   if (!name) return '?';
@@ -83,6 +94,19 @@ export function WhatsAppInboxPage() {
     || null;
 
   const campaignTemplateSet = selectedCampaign?.template_set ?? [];
+  const templateCampaignId =
+    selectedCampaign?.id
+    || selectedConv?.campaign_id
+    || leadQuery.data?.campaign_id
+    || null;
+
+  const templateCatalogQuery = useQuery<WatiTemplate[]>({
+    queryKey: ['templates', templateCampaignId],
+    queryFn: () => get<WatiTemplate[]>(`/api/campaigns/${templateCampaignId}/available-templates`),
+    enabled: !!templateCampaignId && !!selectedId,
+    staleTime: 60_000,
+  });
+  const templatesByName = new Map((templateCatalogQuery.data ?? []).map((item) => [item.name, item]));
 
   const messagesQuery = useQuery<Message[]>({
     queryKey: ['conv-messages', selectedId],
@@ -359,6 +383,9 @@ export function WhatsAppInboxPage() {
                   const isAi = msg.sender === 'ai';
                   const isHuman = msg.sender === 'human';
                   const isTemplate = Boolean(msg.template_name);
+                  const templateCard = msg.template_name ? templatesByName.get(msg.template_name) : undefined;
+                  const media = leadMedia(msg);
+                  const showText = Boolean(msg.body) && msg.body !== '[non-text message]';
                   const delivered = ['delivered', 'read', 'replied'].includes(
                     (msg.delivery_status || '').toLowerCase(),
                   );
@@ -390,13 +417,21 @@ export function WhatsAppInboxPage() {
 
                         {/* WhatsApp Chat Bubbles */}
                         <div
-                          className={`relative max-w-full min-w-0 px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
+                          className={`relative max-w-full min-w-0 overflow-hidden px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
                             isOut
                               ? 'bg-[#DCF8C6] text-slate-900 rounded-2xl rounded-tr-xs border border-[#C5E8AC]'
                               : 'bg-white text-slate-900 rounded-2xl rounded-tl-xs border border-slate-200/80'
                           }`}
                         >
-                          <MessageBody text={msg.body} />
+                          <TemplateChrome template={templateCard} part="header" />
+                          {(media?.kind === 'image' || media?.kind === 'sticker') && (
+                            <ChatImage
+                              src={apiUrl(`/api/inbox/message-media?file=${encodeURIComponent(media.file)}`)}
+                              className="w-full max-h-72 object-cover bg-slate-100"
+                            />
+                          )}
+                          {showText && <MessageBody text={msg.body} />}
+                          <TemplateChrome template={templateCard} part="footer" />
 
                           {/* Timestamp & Double Checkmarks */}
                           <div className="flex items-center justify-end gap-1 text-[10px] mt-1 text-slate-500 select-none">

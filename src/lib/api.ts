@@ -10,6 +10,10 @@ function resolveBaseUrl(): string {
 
 const BASE_URL = resolveBaseUrl();
 
+export function apiUrl(path: string): string {
+  return `${BASE_URL}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   detail: string;
