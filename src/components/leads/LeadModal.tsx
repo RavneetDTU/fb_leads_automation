@@ -5,12 +5,12 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { get, patch, post } from '../../lib/api';
 import { ALL_LEAD_STATUSES } from '../../lib/leadStatuses';
-import type { LeadDetail, Note, Message, LeadUpdate } from '../../types';
+import type { LeadDetail, Note, LeadUpdate } from '../../types';
 import { Modal } from '../ui/Modal';
 
 import { Spinner, Skeleton } from '../ui/Spinner';
 import { ErrorState, EmptyState } from '../ui/States';
-import { MessageBody } from '../chat/MessageBody';
+import { LeadChatThread } from '../chat/LeadChatThread';
 
 interface LeadModalProps {
   leadId: string;
@@ -22,9 +22,8 @@ export function LeadModal({ leadId, open, onClose }: LeadModalProps) {
   const [tab, setTab] = useState<'info' | 'notes' | 'whatsapp'>('info');
 
   return (
-    <Modal open={open} onClose={onClose} title="Edit Lead" subtitle="Update lead details" maxWidth="2xl">
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 -mx-6 px-6 mb-4">
+    <Modal open={open} onClose={onClose} title="Edit Lead" subtitle="Update lead details" maxWidth="3xl" fill>
+      <div className="flex border-b border-slate-200 px-6 shrink-0">
         {(['info', 'notes', 'whatsapp'] as const).map((t) => (
           <button
             key={t}
@@ -40,9 +39,11 @@ export function LeadModal({ leadId, open, onClose }: LeadModalProps) {
         ))}
       </div>
 
-      {tab === 'info' && <BasicInfoTab leadId={leadId} />}
-      {tab === 'notes' && <NotesTab leadId={leadId} />}
-      {tab === 'whatsapp' && <WhatsAppTab leadId={leadId} />}
+      <div className={`flex-1 min-h-0 ${tab === 'whatsapp' ? 'flex flex-col' : 'overflow-y-auto px-6 py-4'}`}>
+        {tab === 'info' && <BasicInfoTab leadId={leadId} />}
+        {tab === 'notes' && <NotesTab leadId={leadId} />}
+        {tab === 'whatsapp' && <LeadChatThread leadId={leadId} showIdentity={false} />}
+      </div>
     </Modal>
   );
 }
@@ -267,64 +268,3 @@ function NotesTab({ leadId }: { leadId: string }) {
   );
 }
 
-// ── Tab 3: WhatsApp ───────────────────────────────────────────────────────────
-
-const senderLabel: Record<string, string> = {
-  lead: 'Lead',
-  ai: 'AI',
-  human: 'Agent',
-  system: 'System',
-};
-
-const senderColor: Record<string, string> = {
-  lead: 'text-slate-400',
-  ai: 'text-indigo-500',
-  human: 'text-indigo-600',
-  system: 'text-amber-600',
-};
-
-function WhatsAppTab({ leadId }: { leadId: string }) {
-  const { data: messages, isLoading, error, refetch } = useQuery<Message[]>({
-    queryKey: ['messages', leadId],
-    queryFn: () => get<Message[]>(`/api/leads/${leadId}/messages`),
-  });
-
-  if (isLoading) return <div className="flex justify-center py-10"><Spinner size="md" /></div>;
-  if (error) return <ErrorState message={(error as Error).message} onRetry={refetch} />;
-  if (!messages || messages.length === 0) {
-    return <EmptyState title="No messages yet" description="WhatsApp messages will appear here." />;
-  }
-
-  return (
-    <div className="space-y-3 max-h-[28rem] overflow-y-auto py-2 pr-1">
-      {messages.map((msg) => {
-        const isOutbound = msg.direction === 'outbound';
-        return (
-          <div key={msg.id} className={`flex min-w-0 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[75%] min-w-0 ${isOutbound ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-              <span className={`text-xs ${senderColor[msg.sender] ?? 'text-slate-500'} font-medium`}>
-                {senderLabel[msg.sender] ?? msg.sender}
-              </span>
-              <div
-                className={`max-w-full min-w-0 px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                  isOutbound
-                    ? 'bg-indigo-600 text-white rounded-tr-sm'
-                    : 'bg-slate-100 text-slate-800 rounded-tl-sm'
-                }`}
-              >
-                {msg.body?.trim() ? (
-                  <MessageBody text={msg.body} onDark={isOutbound} />
-                ) : (
-                  <span className="italic opacity-80">[No message text]</span>
-                )}
-              </div>
-              <span className="text-xs text-slate-400">
-                {format(new Date(msg.created_at), 'MMM d, yyyy HH:mm')}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}

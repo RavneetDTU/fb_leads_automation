@@ -7,7 +7,9 @@ interface ModalProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+  fill?: boolean;
+  lockScroll?: boolean;
   footer?: ReactNode;
 }
 
@@ -17,9 +19,12 @@ const maxWidthClass = {
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
 };
 
-export function Modal({ open, onClose, title, subtitle, children, maxWidth = 'lg', footer }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, maxWidth = 'lg', fill = false, lockScroll = true, footer }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,24 +38,29 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = 'lg
 
   // Prevent body scroll when modal is open
   useEffect(() => {
+    if (!lockScroll) return;
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [open]);
+  }, [open, lockScroll]);
 
   if (!open) return null;
 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+      className={`${lockScroll ? 'z-50' : 'z-[70]'} fixed inset-0 flex justify-center bg-black/50 backdrop-blur-sm animate-fade-in ${
+        fill
+          ? 'items-stretch pt-6 pr-6 pb-6 pl-[calc(16rem+1.5rem)]'
+          : 'items-center p-4'
+      }`}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className={`w-full ${maxWidthClass[maxWidth]} bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
+      <div className={`w-full ${maxWidthClass[maxWidth]} bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${fill ? 'min-h-0' : 'max-h-[90vh]'}`}>
         {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
           <div>
             <h2 id="modal-title" className="text-lg font-semibold text-slate-800">{title}</h2>
             {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
@@ -65,7 +75,7 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = 'lg
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className={`flex-1 min-h-0 ${fill ? 'flex flex-col' : 'overflow-y-auto px-6 py-4'}`}>
           {children}
         </div>
 

@@ -1,33 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, formatDistanceToNow } from 'date-fns';
-import { Search, Send, MessageSquare, Bot, CheckCheck, UserCheck } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
-import { apiUrl, get, post, patch } from '../lib/api';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { Search, MessageSquare } from 'lucide-react';
+import { get } from '../lib/api';
 import { ALL_LEAD_STATUSES, LEAD_SORT_OPTIONS, type LeadSort } from '../lib/leadStatuses';
 import { BRANCH_OPTIONS } from '../lib/branches';
-import type { Campaign, ConversationListItem, LeadDetail, LeadStatus, Message, WatiTemplate } from '../types';
-import { StatusBadge, OldLeadBadge } from '../components/ui/Badge';
-import { Toggle } from '../components/ui/Toggle';
+import type { Campaign, ConversationListItem, LeadStatus } from '../types';
+import { StatusBadge } from '../components/ui/Badge';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
-import { Modal } from '../components/ui/Modal';
-import { ChatImage } from '../components/chat/ChatImage';
-import { MessageBody } from '../components/chat/MessageBody';
-import { TemplateChrome } from '../components/chat/TemplateChrome';
-import { TemplateSetDropdown } from '../components/chat/TemplateSetDropdown';
-import { ApiError } from '../lib/api';
+import { LeadChatThread } from '../components/chat/LeadChatThread';
 
 const POLL_MS = 10_000;
-
-function leadMedia(msg: Message): { kind: string; file: string } | null {
-  const media = msg.template_params?.media;
-  if (!media || typeof media !== 'object') return null;
-  const kind = String((media as { kind?: unknown }).kind || '');
-  const file = String((media as { file?: unknown }).file || '');
-  if (!file.startsWith('data/')) return null;
-  return { kind, file };
-}
 
 function getInitials(name: string): string {
   if (!name) return '?';
@@ -41,17 +25,12 @@ function getInitials(name: string): string {
 }
 
 export function WhatsAppInboxPage() {
-  const { toast } = useToast();
-  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
   const [sort, setSort] = useState<LeadSort>('last_activity_desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const [aiConflictModal, setAiConflictModal] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const convsQuery = useQuery<ConversationListItem[]>({
     queryKey: ['conversations', { search, campaignFilter, branchFilter, statusFilter, sort }],
@@ -69,111 +48,6 @@ export function WhatsAppInboxPage() {
   const campaignsQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
     queryFn: () => get<Campaign[]>('/api/campaigns?limit=100'),
-  });
-
-  const selectedConv = convsQuery.data?.find((c) => c.lead_id === selectedId);
-
-  const leadQuery = useQuery<LeadDetail>({
-    queryKey: ['lead', selectedId],
-    queryFn: () => get<LeadDetail>(`/api/leads/${selectedId}`),
-    enabled: !!selectedId,
-  });
-
-  const selectedCampaign =
-    (campaignsQuery.data ?? []).find(
-      (c) => c.id === (selectedConv?.campaign_id ?? leadQuery.data?.campaign_id),
-    ) ?? null;
-
-  const selectedCampaignName =
-    selectedConv?.campaign_name
-    || leadQuery.data?.campaign_name
-    || selectedCampaign?.name
-    || (campaignFilter
-      ? (campaignsQuery.data ?? []).find((c) => c.id === campaignFilter)?.name
-      : null)
-    || null;
-
-  const campaignTemplateSet = selectedCampaign?.template_set ?? [];
-  const templateCampaignId =
-    selectedCampaign?.id
-    || selectedConv?.campaign_id
-    || leadQuery.data?.campaign_id
-    || null;
-
-  const templateCatalogQuery = useQuery<WatiTemplate[]>({
-    queryKey: ['templates', templateCampaignId],
-    queryFn: () => get<WatiTemplate[]>(`/api/campaigns/${templateCampaignId}/available-templates`),
-    enabled: !!templateCampaignId && !!selectedId,
-    staleTime: 60_000,
-  });
-  const templatesByName = new Map((templateCatalogQuery.data ?? []).map((item) => [item.name, item]));
-
-  const messagesQuery = useQuery<Message[]>({
-    queryKey: ['conv-messages', selectedId],
-    queryFn: () =>
-      get<Message[]>(`/api/inbox/conversations/${selectedId}/messages`),
-    enabled: !!selectedId,
-    refetchInterval: POLL_MS,
-  });
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messagesQuery.data]);
-
-  const aiToggleMutation = useMutation({
-    mutationFn: ({ ai_mode }: { ai_mode: boolean }) =>
-      patch(`/api/leads/${selectedId}`, { ai_mode }),
-    onMutate: async ({ ai_mode }) => {
-      await qc.cancelQueries({ queryKey: ['conversations'] });
-      const prev = qc.getQueryData<ConversationListItem[]>(['conversations', { search, campaignFilter, statusFilter, sort }]);
-      qc.setQueryData<ConversationListItem[]>(['conversations', { search, campaignFilter, statusFilter, sort }], (old) =>
-        old?.map((c) => (c.lead_id === selectedId ? { ...c, ai_mode } : c)),
-      );
-      return { prev };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['conversations', { search, campaignFilter, statusFilter, sort }], ctx.prev);
-      toast('error', 'Failed to toggle AI mode.');
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['conversations'] }),
-  });
-
-  const sendMutation = useMutation({
-    mutationFn: (body: string) =>
-      post<Message>(`/api/inbox/conversations/${selectedId}/messages`, { body }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['conv-messages', selectedId] });
-      qc.invalidateQueries({ queryKey: ['conversations'] });
-      setMessage('');
-    },
-    onError: (err: Error) => {
-      if (err instanceof ApiError && err.status === 409) {
-        setAiConflictModal(true);
-      } else {
-        toast('error', `Failed to send: ${err.message}`);
-      }
-    },
-  });
-
-  function handleSend() {
-    if (!message.trim() || !selectedId) return;
-    sendMutation.mutate(message.trim());
-  }
-
-  const sendTemplateMutation = useMutation({
-    mutationFn: (templateName: string) =>
-      post<Message>(`/api/inbox/conversations/${selectedId}/templates`, {
-        template_name: templateName,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['conv-messages', selectedId] });
-      qc.invalidateQueries({ queryKey: ['conversations'] });
-      toast('success', 'Template sent.');
-    },
-    onError: (err: Error) => {
-      toast('error', `Failed to send template: ${err.message}`);
-    },
   });
 
   return (
@@ -266,7 +140,6 @@ export function WhatsAppInboxPage() {
                       : 'hover:bg-slate-50 border-l-4 border-transparent'
                   }`}
                 >
-                  {/* Avatar */}
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-sm ${
                     conv.unread
                       ? 'bg-emerald-500 text-white'
@@ -306,7 +179,6 @@ export function WhatsAppInboxPage() {
       {/* Right Panel (65% width): Active Chat Container */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#E5DDD5]/20 relative">
         {!selectedId ? (
-          /* Empty Thread Placeholder */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 select-none bg-white">
             <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600 shadow-md border border-emerald-100">
               <MessageSquare size={36} />
@@ -317,203 +189,9 @@ export function WhatsAppInboxPage() {
             </p>
           </div>
         ) : (
-          <>
-            {/* Sticky Native Chat Header */}
-            <div className="flex items-center justify-between px-6 py-3.5 bg-white border-b border-slate-200 shadow-sm z-10">
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-700 border border-indigo-200 shadow-sm">
-                  {selectedConv ? getInitials(selectedConv.full_name) : '?'}
-                </div>
-                <div>
-                  <p className="font-bold text-slate-900 text-sm leading-tight">{selectedConv?.full_name}</p>
-                  <p className="text-xs font-mono text-slate-500 mt-0.5">{selectedConv?.phone}</p>
-                  <p className="text-[11px] text-indigo-600 font-medium mt-0.5 truncate">
-                    {selectedCampaignName ?? 'No campaign'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={selectedConv?.status ?? 'NEW'} />
-                {selectedConv?.is_old_lead && <OldLeadBadge reason={selectedConv.old_lead_reason} />}
-                <TemplateSetDropdown
-                  templates={campaignTemplateSet}
-                  campaignId={selectedCampaign?.id ?? selectedConv?.campaign_id ?? leadQuery.data?.campaign_id ?? null}
-                  leadName={selectedConv?.full_name ?? leadQuery.data?.full_name ?? ''}
-                  disabled={!!selectedConv?.is_old_lead || campaignTemplateSet.length === 0}
-                  disabledReason={
-                    selectedConv?.is_old_lead
-                      ? 'Outbound messaging is disabled for old leads'
-                      : 'No campaign templates'
-                  }
-                  sending={sendTemplateMutation.isPending}
-                  onSend={(name) => {
-                    if (!selectedId) return;
-                    sendTemplateMutation.mutate(name);
-                  }}
-                />
-                <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-                  <Bot size={18} className={selectedConv?.ai_mode && !selectedConv?.is_old_lead ? 'text-indigo-600' : 'text-slate-400'} />
-                  <span className="text-xs font-semibold text-slate-700">Jarvis AI Mode</span>
-                  <Toggle
-                    enabled={selectedConv?.is_old_lead ? false : (selectedConv?.ai_mode ?? false)}
-                    onChange={(val) => {
-                      if (!selectedConv?.is_old_lead) {
-                        aiToggleMutation.mutate({ ai_mode: val });
-                      }
-                    }}
-                    size="sm"
-                    color="indigo"
-                    label="Switch AI mode"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Active Chat Message Wallpaper Container */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#F0F2F5]/80">
-              {messagesQuery.isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="md" /></div>
-              ) : messagesQuery.error ? (
-                <ErrorState message={(messagesQuery.error as Error).message} onRetry={messagesQuery.refetch} />
-              ) : (messagesQuery.data ?? []).length === 0 ? (
-                <EmptyState title="No messages yet" description="Conversation history will appear here." />
-              ) : (
-                (messagesQuery.data ?? []).map((msg) => {
-                  const isOut = msg.direction === 'outbound';
-                  const isAi = msg.sender === 'ai';
-                  const isHuman = msg.sender === 'human';
-                  const isTemplate = Boolean(msg.template_name);
-                  const templateCard = msg.template_name ? templatesByName.get(msg.template_name) : undefined;
-                  const media = leadMedia(msg);
-                  const showText = Boolean(msg.body) && msg.body !== '[non-text message]';
-                  const delivered = ['delivered', 'read', 'replied'].includes(
-                    (msg.delivery_status || '').toLowerCase(),
-                  );
-                  return (
-                    <div key={msg.id} className={`flex min-w-0 ${isOut ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[65%] min-w-0 flex flex-col ${isOut ? 'items-end' : 'items-start'}`}>
-                        {/* Explicit Bot / Agent Tag */}
-                        <div className="flex items-center gap-1.5 mb-1 px-1">
-                          {isAi ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 font-bold text-[10px]">
-                              <Bot size={11} /> 🤖 Jarvis AI
-                            </span>
-                          ) : isTemplate && isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                              Template
-                            </span>
-                          ) : isHuman && isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
-                              <UserCheck size={11} /> Human Agent
-                            </span>
-                          ) : isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                              Template
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-slate-500 font-medium">Lead</span>
-                          )}
-                        </div>
-
-                        {/* WhatsApp Chat Bubbles */}
-                        <div
-                          className={`relative max-w-full min-w-0 overflow-hidden px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all ${
-                            isOut
-                              ? 'bg-[#DCF8C6] text-slate-900 rounded-2xl rounded-tr-xs border border-[#C5E8AC]'
-                              : 'bg-white text-slate-900 rounded-2xl rounded-tl-xs border border-slate-200/80'
-                          }`}
-                        >
-                          <TemplateChrome template={templateCard} part="header" />
-                          {(media?.kind === 'image' || media?.kind === 'sticker') && (
-                            <ChatImage
-                              src={apiUrl(`/api/inbox/message-media?file=${encodeURIComponent(media.file)}`)}
-                              className="w-full max-h-72 object-cover bg-slate-100"
-                            />
-                          )}
-                          {showText && <MessageBody text={msg.body} />}
-                          <TemplateChrome template={templateCard} part="footer" />
-
-                          {/* Timestamp & Double Checkmarks */}
-                          <div className="flex items-center justify-end gap-1 text-[10px] mt-1 text-slate-500 select-none">
-                            <span>{format(new Date(msg.created_at), 'MMM d, yyyy HH:mm')}</span>
-                            {isOut && (
-                              <CheckCheck
-                                size={14}
-                                className={`inline ${delivered ? 'text-emerald-600' : 'text-slate-400'}`}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Bottom Sticky Input Bar */}
-            <div className="p-4 bg-white border-t border-slate-200 shadow-sm">
-              {selectedConv?.is_old_lead ? (
-                <div className="mb-2 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-900 font-medium flex items-center gap-2">
-                  <span>⚠️</span>
-                  <span>
-                    Outbound WhatsApp messaging is strictly disabled for historical/backfilled leads (is_old_lead=true).
-                  </span>
-                </div>
-              ) : selectedConv?.ai_mode ? (
-                <div className="mb-2 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs text-indigo-800 flex items-center gap-1.5">
-                  <Bot size={14} className="text-indigo-600 shrink-0" />
-                  <span>Jarvis AI mode is active. Turn off AI mode in the header to send manual agent messages.</span>
-                </div>
-              ) : null}
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder={selectedConv?.is_old_lead ? 'Outbound messaging disabled for old leads' : 'Type a WhatsApp message…'}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                  disabled={selectedConv?.ai_mode || selectedConv?.is_old_lead}
-                  className="input flex-1 rounded-full px-5 py-2.5 bg-slate-50 border-slate-200 focus:bg-white text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!message.trim() || sendMutation.isPending || selectedConv?.ai_mode || selectedConv?.is_old_lead}
-                  className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shrink-0 transition-all duration-150 disabled:bg-slate-200 disabled:cursor-not-allowed shadow-sm"
-                  aria-label="Send message"
-                >
-                  {sendMutation.isPending ? <Spinner size="sm" /> : <Send size={16} />}
-                </button>
-              </div>
-            </div>
-          </>
+          <LeadChatThread leadId={selectedId} />
         )}
       </div>
-
-      {/* 409 AI Conflict Modal */}
-      <Modal
-        open={aiConflictModal}
-        onClose={() => setAiConflictModal(false)}
-        title="Jarvis AI Active"
-        subtitle="Manual override required"
-        maxWidth="sm"
-        footer={
-          <button onClick={() => setAiConflictModal(false)} className="btn-primary">Understood</button>
-        }
-      >
-        <div className="flex items-start gap-3 p-1">
-          <Bot size={24} className="text-indigo-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-slate-700 leading-relaxed">
-            <p>
-              Jarvis AI is actively automating replies for this lead.
-            </p>
-            <p className="mt-1.5 text-xs text-slate-500">
-              Please turn off <strong>Jarvis AI Mode</strong> in the top chat header to take over manually.
-            </p>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -70,14 +70,16 @@ export function TemplateSetDropdown({
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
       if (pendingName) setPendingName(null);
       else setOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener('keydown', handleKey, true);
     return () => {
       document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('keydown', handleKey, true);
     };
   }, [open, pendingName]);
 
@@ -111,7 +113,7 @@ export function TemplateSetDropdown({
       </button>
       {open && (
         <div
-          className="absolute right-0 mt-1.5 w-[22rem] max-h-[28rem] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg z-20 py-1"
+          className="absolute right-0 mt-1.5 w-[22rem] max-h-[28rem] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg z-30 py-1"
         >
           {pending ? (
             <div className="px-3 py-2.5 space-y-3">
