@@ -88,7 +88,7 @@ export function FollowupSequencePicker({
       onClose={onClose}
       title="Follow-up sequence"
       subtitle="Sent only when the lead never replies. A reply cancels whatever is left."
-      maxWidth="lg"
+      maxWidth="xl"
       footer={footer}
     >
       <div className="space-y-5">
@@ -154,25 +154,61 @@ function TemplateField({
   templates: WatiTemplate[];
   onChange: (value: string) => void;
 }) {
+  const missing = value && !templates.some((t) => t.name === value) ? value : '';
   return (
-    <label htmlFor={id} className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</span>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-      >
-        <option value="">Don't send</option>
-        {value && !templates.some((t) => t.name === value) && (
-          <option value={value}>{value}</option>
+    <fieldset className="space-y-1.5">
+      <legend className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</legend>
+      <p className="text-xs text-slate-500">{hint}</p>
+      <div id={id} role="listbox" aria-label={label} className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+        <button
+          type="button"
+          role="option"
+          aria-selected={value === ''}
+          onClick={() => onChange('')}
+          className={`w-full text-left rounded-xl border px-3 py-2.5 text-sm transition-all ${
+            value === ''
+              ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500 font-semibold text-slate-800'
+              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+          }`}
+        >
+          Don't send
+        </button>
+        {missing && (
+          <button
+            type="button"
+            role="option"
+            aria-selected
+            onClick={() => onChange(missing)}
+            className="w-full text-left rounded-xl border border-brand-500 bg-brand-50 ring-1 ring-brand-500 px-3 py-2.5"
+          >
+            <span className="block text-sm font-semibold text-slate-800">{missing}</span>
+            <span className="mt-1 block text-xs text-slate-500">This template is saved but is not in the current Wati list.</span>
+          </button>
         )}
-        {templates.map((template) => (
-          <option key={template.name} value={template.name}>{template.name}</option>
-        ))}
-      </select>
-      <span className="block text-xs text-slate-500">{hint}</span>
-    </label>
+        {templates.map((template) => {
+          const selected = template.name === value;
+          return (
+            <button
+              key={template.name}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              onClick={() => onChange(template.name)}
+              className={`w-full text-left rounded-xl border px-3 py-2.5 transition-all ${
+                selected
+                  ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <span className="block text-sm font-semibold text-slate-800">{template.name}</span>
+              <span className="mt-1.5 block text-xs text-slate-600 whitespace-pre-wrap break-words leading-relaxed">
+                {template.body_preview || 'No message body is available for this template.'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

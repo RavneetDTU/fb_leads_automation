@@ -313,6 +313,8 @@ export function WhatsAppInboxPage() {
                 {selectedConv?.is_old_lead && <OldLeadBadge reason={selectedConv.old_lead_reason} />}
                 <TemplateSetDropdown
                   templates={campaignTemplateSet}
+                  campaignId={selectedCampaign?.id ?? selectedConv?.campaign_id ?? leadQuery.data?.campaign_id ?? null}
+                  leadName={selectedConv?.full_name ?? leadQuery.data?.full_name ?? ''}
                   disabled={!!selectedConv?.is_old_lead || campaignTemplateSet.length === 0}
                   disabledReason={
                     selectedConv?.is_old_lead
