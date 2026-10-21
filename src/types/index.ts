@@ -46,7 +46,7 @@ export type MessageDirection = 'inbound' | 'outbound';
 
 // --- Campaigns ---
 
-export type LeadSource = 'meta_live' | 'meta_backfill' | 'manual';
+export type LeadSource = 'meta_live' | 'meta_backfill' | 'manual' | 'csv';
 
 // --- Campaigns ---
 
@@ -131,6 +131,19 @@ export interface BulkTemplateResponse {
   failed: BulkTemplateFail[];
 }
 
+export interface CsvImportError {
+  row: number;
+  phone: string;
+  error: string;
+}
+
+export interface CsvImportResponse {
+  created: number;
+  reused: number;
+  opener_sent: number;
+  errors: CsvImportError[];
+}
+
 // --- Leads ---
 
 export interface LeadSummary {
@@ -147,6 +160,7 @@ export interface LeadListItem {
   phone: string;
   campaign_name: string | null;
   branch?: string | null;
+  city?: string | null;
   status: LeadStatus;
   source?: LeadSource;
   is_old_lead?: boolean;
@@ -184,6 +198,7 @@ export interface LeadDetail {
   campaign_id: string;
   campaign_name: string | null;
   branch?: string | null;
+  city?: string | null;
   meta_ad_id: string | null;
   meta_ad_name: string | null;
   meta_form_fields: Record<string, unknown>;

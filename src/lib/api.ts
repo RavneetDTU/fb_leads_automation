@@ -34,12 +34,13 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
+  const headers = new Headers(options.headers);
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (res.status === 204) {
@@ -70,6 +71,13 @@ export function post<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, {
     method: 'POST',
     body: JSON.stringify(body),
+  });
+}
+
+export function postForm<T>(path: string, body: FormData): Promise<T> {
+  return request<T>(path, {
+    method: 'POST',
+    body,
   });
 }
 

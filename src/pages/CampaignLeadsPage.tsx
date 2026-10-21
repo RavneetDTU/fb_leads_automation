@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronRight, Search, FileText } from 'lucide-react';
+import { ChevronRight, Search, FileText, Upload } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { get, patch } from '../lib/api';
 import type { Campaign, CampaignLeadsPaginatedResponse, LeadListItem } from '../types';
@@ -15,6 +15,7 @@ import { LeadModal } from '../components/leads/LeadModal';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
 import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
 import { FollowupSequencePicker } from '../components/campaigns/FollowupSequencePicker';
+import { CsvImportHelpButton, CsvImportModal } from '../components/campaigns/CsvImportModal';
 
 const LIMIT = 50;
 
@@ -28,6 +29,7 @@ export function CampaignLeadsPage() {
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateSetOpen, setTemplateSetOpen] = useState(false);
   const [followupOpen, setFollowupOpen] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
 
   const campaignQuery = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
@@ -82,7 +84,7 @@ export function CampaignLeadsPage() {
         <h1 className="text-xl font-bold text-slate-800 truncate">
           {campaign?.name ? `${campaign.name} — Leads` : 'Campaign Leads'}
         </h1>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
           {campaign && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-600">Auto Message</span>
@@ -93,6 +95,16 @@ export function CampaignLeadsPage() {
               />
             </div>
           )}
+          <div className="flex items-center">
+            <button
+              onClick={() => setCsvOpen(true)}
+              className="btn-secondary"
+            >
+              <Upload size={15} />
+              Upload CSV
+            </button>
+            <CsvImportHelpButton />
+          </div>
           <button
             onClick={() => setTemplateOpen(true)}
             className="btn-secondary"
@@ -205,6 +217,15 @@ export function CampaignLeadsPage() {
           finalDelayHours={campaign?.final_delay_hours ?? 24}
           open={followupOpen}
           onClose={() => setFollowupOpen(false)}
+        />
+      )}
+      {campaignId && (
+        <CsvImportModal
+          campaignId={campaignId}
+          autoMessage={Boolean(campaign?.is_active)}
+          assignedTemplateName={campaign?.assigned_template_name ?? null}
+          open={csvOpen}
+          onClose={() => setCsvOpen(false)}
         />
       )}
     </div>

@@ -114,6 +114,14 @@ function BasicInfoTab({ leadId }: { leadId: string }) {
           <input className="input bg-slate-50 cursor-default" value={data.campaign_name ?? '—'} readOnly />
         </div>
         <div>
+          <label className="label">Branch</label>
+          <input className="input bg-slate-50 cursor-default" value={data.branch ?? '—'} readOnly />
+        </div>
+        <div>
+          <label className="label">City</label>
+          <input className="input bg-slate-50 cursor-default" value={data.city ?? '—'} readOnly />
+        </div>
+        <div>
           <label className="label">Status</label>
           <select
             className="select"
