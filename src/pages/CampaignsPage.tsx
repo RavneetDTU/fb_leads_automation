@@ -13,6 +13,7 @@ import { ErrorState, EmptyState } from '../components/ui/States';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
 import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
 import { FollowupSequencePicker } from '../components/campaigns/FollowupSequencePicker';
+import { CreateMetaCampaignModal } from '../components/campaigns/CreateMetaCampaignModal';
 
 function MetricCard({
   label,
@@ -186,6 +187,7 @@ export function CampaignsPage() {
   const [templateSetCampaignId, setTemplateSetCampaignId] = useState<string | null>(null);
   const [followupCampaignId, setFollowupCampaignId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createMetaOpen, setCreateMetaOpen] = useState(false);
 
   const summaryQuery = useQuery<CampaignSummary>({
     queryKey: ['campaigns-summary'],
@@ -215,14 +217,24 @@ export function CampaignsPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">AI Lead Campaigns</h1>
           <p className="text-xs text-slate-500 mt-0.5">Meta ad accounts linked to automated Jarvis AI WhatsApp sequences.</p>
         </div>
-        <button
-          id="create-manual-campaign-btn"
-          onClick={() => setCreateOpen(true)}
-          className="btn-primary"
-        >
-          <Plus size={16} />
-          + Create Manual Campaign
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            id="create-meta-campaign-btn"
+            onClick={() => setCreateMetaOpen(true)}
+            className="btn-primary"
+          >
+            <Plus size={16} />
+            Create Meta Campaign
+          </button>
+          <button
+            id="create-manual-campaign-btn"
+            onClick={() => setCreateOpen(true)}
+            className="btn-secondary"
+          >
+            <Plus size={16} />
+            Create Manual Campaign
+          </button>
+        </div>
       </div>
 
       {/* Metric Bar: 4 Elevated White Metric Cards */}
@@ -343,6 +355,14 @@ export function CampaignsPage() {
           qc.invalidateQueries({ queryKey: ['campaigns-summary'] });
         }}
       />
+      <CreateMetaCampaignModal
+        open={createMetaOpen}
+        onClose={() => setCreateMetaOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['campaigns'] });
+          qc.invalidateQueries({ queryKey: ['campaigns-summary'] });
+        }}
+      />
     </div>
   );
 }
@@ -375,8 +395,8 @@ function CampaignCard({
             {campaign.name}
           </h3>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <Globe2 size={13} className="text-indigo-500" />
-            <span>Meta Ads</span>
+            <Globe2 size={13} className={campaign.source === 'meta' ? 'text-indigo-500' : 'text-slate-400'} />
+            <span>{campaign.source === 'meta' ? 'Meta' : 'Manual'}</span>
             <span>•</span>
             <span className="font-mono text-[11px] text-slate-400">{campaign.meta_campaign_id}</span>
           </div>

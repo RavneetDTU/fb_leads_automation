@@ -47,6 +47,7 @@ export type MessageDirection = 'inbound' | 'outbound';
 // --- Campaigns ---
 
 export type LeadSource = 'meta_live' | 'meta_backfill' | 'manual' | 'csv';
+export type CampaignSource = 'manual' | 'meta';
 
 // --- Campaigns ---
 
@@ -63,6 +64,7 @@ export interface Campaign {
   name: string;
   status?: string | null;
   is_active: boolean;
+  source?: CampaignSource | string;
   assigned_template_name: string | null;
   assigned_template_set_at: string | null;
   template_set: string[];
@@ -142,6 +144,29 @@ export interface CsvImportResponse {
   reused: number;
   opener_sent: number;
   errors: CsvImportError[];
+}
+
+export interface MetaCampaignOption {
+  id: string;
+  name: string;
+  status: string;
+  objective: string;
+  start_time?: string | null;
+  stop_time?: string | null;
+}
+
+export interface MetaFieldMap {
+  name: string[];
+  phone: string[];
+  email: string[];
+  location: string[];
+}
+
+export interface MetaCampaignFields {
+  field_names: string[];
+  suggested_map: MetaFieldMap;
+  sample_count: number;
+  ad_count: number;
 }
 
 // --- Leads ---
