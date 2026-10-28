@@ -159,6 +159,7 @@ export interface MetaFieldMap {
   name: string[];
   phone: string[];
   email: string[];
+  city: string[];
   location: string[];
 }
 

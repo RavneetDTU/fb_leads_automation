@@ -6,7 +6,7 @@ import { get, post } from '../../lib/api';
 import type { Campaign, MetaCampaignFields, MetaCampaignOption, MetaFieldMap } from '../../types';
 import { Toggle } from '../ui/Toggle';
 
-const EMPTY_MAP: MetaFieldMap = { name: [], phone: [], email: [], location: [] };
+const EMPTY_MAP: MetaFieldMap = { name: [], phone: [], email: [], city: [], location: [] };
 
 function OrderedFieldPicker({
   label,
@@ -140,6 +140,7 @@ export function CreateMetaCampaignModal({
         name: fieldsQuery.data.suggested_map.name ?? [],
         phone: fieldsQuery.data.suggested_map.phone ?? [],
         email: fieldsQuery.data.suggested_map.email ?? [],
+        city: fieldsQuery.data.suggested_map.city ?? [],
         location: fieldsQuery.data.suggested_map.location ?? [],
       });
     }
@@ -295,8 +296,15 @@ export function CreateMetaCampaignModal({
                 onChange={(emailFields) => setFieldMap((current) => ({ ...current, email: emailFields }))}
               />
               <OrderedFieldPicker
+                label="Province"
+                hint="First non-empty answer is stored as the lead city. Map What's your province? here."
+                fieldNames={fieldNames}
+                selected={fieldMap.city}
+                onChange={(cityFields) => setFieldMap((current) => ({ ...current, city: cityFields }))}
+              />
+              <OrderedFieldPicker
                 label="Preferred location"
-                hint="First non-empty answer among these questions becomes the branch. Use this for practice, area, or city questions."
+                hint="First non-empty answer among these questions becomes the branch. Use this for practice or area questions."
                 fieldNames={fieldNames}
                 selected={fieldMap.location}
                 onChange={(locationFields) => setFieldMap((current) => ({ ...current, location: locationFields }))}
