@@ -229,6 +229,8 @@ export function LastThirtyDaysPage() {
   const qc = useQueryClient();
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [campaignFilter, setCampaignFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | ''>('');
@@ -246,8 +248,19 @@ export function LastThirtyDaysPage() {
     refetchInterval: POLL_MS,
   });
 
+  const listKey = { statusFilter, campaignFilter, branchFilter, sort, offset, search: debouncedSearch };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 200);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setOffset(0);
+  }, [debouncedSearch]);
+
   const leadsQuery = useQuery<LeadPaginatedResponse>({
-    queryKey: ['leads', { statusFilter, campaignFilter, branchFilter, sort, offset }],
+    queryKey: ['leads', listKey],
     queryFn: () => {
       const params = new URLSearchParams({
         days: '30',
@@ -258,6 +271,7 @@ export function LastThirtyDaysPage() {
       if (statusFilter) params.set('status', statusFilter);
       if (campaignFilter) params.set('campaign_id', campaignFilter);
       if (branchFilter) params.set('branch', branchFilter);
+      if (debouncedSearch) params.set('search', debouncedSearch);
       return get<LeadPaginatedResponse>(`/api/leads?${params}`);
     },
     refetchInterval: POLL_MS,
@@ -272,7 +286,7 @@ export function LastThirtyDaysPage() {
     mutationFn: ({ leadId, ai_mode }: { leadId: string; ai_mode: boolean }) =>
       patch<LeadListItem>(`/api/leads/${leadId}`, { ai_mode }),
     onMutate: async ({ leadId, ai_mode }) => {
-      const key = ['leads', { statusFilter, campaignFilter, sort, offset }];
+      const key = ['leads', listKey];
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<LeadPaginatedResponse>(key);
       qc.setQueryData<LeadPaginatedResponse>(key, (old) =>
@@ -287,9 +301,16 @@ export function LastThirtyDaysPage() {
     onSettled: () => qc.invalidateQueries({ queryKey: ['leads'] }),
   });
 
-  const filtered = (leadsQuery.data?.items ?? []).filter((l) =>
-    `${l.full_name} ${l.phone} ${l.campaign_name ?? ''}`.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = leadsQuery.data?.items ?? [];
+  const suggestions = debouncedSearch ? filtered.slice(0, 8) : [];
+  const showSuggestions = searchFocused && search.trim().length > 0 && suggestions.length > 0;
+
+  function chooseSuggestion(lead: LeadListItem) {
+    const digits = search.replace(/\D/g, '');
+    const numeric = digits.length >= 3 && !/[a-z]/i.test(search);
+    setSearch(numeric ? lead.phone : lead.full_name);
+    setSearchFocused(false);
+  }
 
   const selectedCount = Object.keys(selected).length;
   const pageSelectedCount = filtered.filter((lead) => selected[lead.id]).length;
@@ -381,11 +402,53 @@ export function LastThirtyDaysPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
-              placeholder="Search name, phone, or campaign"
+              placeholder="Search name or phone"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSearchFocused(true);
+              }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setSearchFocused(false);
+                if (e.key === 'Enter' && suggestions[0]) {
+                  e.preventDefault();
+                  chooseSuggestion(suggestions[0]);
+                }
+              }}
               className="input pl-8 py-1.5 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions}
             />
+            {showSuggestions && (
+              <ul
+                className="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+                role="listbox"
+              >
+                {suggestions.map((lead) => (
+                  <li key={lead.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => chooseSuggestion(lead)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50"
+                    >
+                      <p className="text-xs font-semibold text-slate-900 truncate">{lead.full_name}</p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        <span className="font-mono">{lead.phone}</span>
+                        {lead.campaign_name ? ` · ${lead.campaign_name}` : ''}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+                {(leadsQuery.data?.total ?? 0) > suggestions.length && (
+                  <li className="px-3 py-1.5 text-[11px] text-slate-400 border-t border-slate-100">
+                    {leadsQuery.data?.total} matches across campaigns
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
           <select
             value={campaignFilter}
