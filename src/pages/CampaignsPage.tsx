@@ -11,7 +11,7 @@ import { Toggle } from '../components/ui/Toggle';
 import { CardSkeleton } from '../components/ui/Spinner';
 import { ErrorState, EmptyState } from '../components/ui/States';
 import { TemplatePicker } from '../components/campaigns/TemplatePicker';
-import { TemplateSetPicker } from '../components/campaigns/TemplateSetPicker';
+import { AppointmentTemplatePicker } from '../components/campaigns/AppointmentTemplatePicker';
 import { FollowupSequencePicker } from '../components/campaigns/FollowupSequencePicker';
 import { CreateMetaCampaignModal } from '../components/campaigns/CreateMetaCampaignModal';
 
@@ -184,7 +184,8 @@ export function CampaignsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [pickerCampaignId, setPickerCampaignId] = useState<string | null>(null);
-  const [templateSetCampaignId, setTemplateSetCampaignId] = useState<string | null>(null);
+  const [reminderCampaignId, setReminderCampaignId] = useState<string | null>(null);
+  const [missedCampaignId, setMissedCampaignId] = useState<string | null>(null);
   const [followupCampaignId, setFollowupCampaignId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createMetaOpen, setCreateMetaOpen] = useState(false);
@@ -308,7 +309,8 @@ export function CampaignsPage() {
                 campaign={campaign}
                 onNavigate={() => navigate(`/campaigns/${campaign.id}/leads`)}
                 onTemplateClick={() => setPickerCampaignId(campaign.id)}
-                onTemplateSetClick={() => setTemplateSetCampaignId(campaign.id)}
+                onReminderClick={() => setReminderCampaignId(campaign.id)}
+                onMissedClick={() => setMissedCampaignId(campaign.id)}
                 onFollowupClick={() => setFollowupCampaignId(campaign.id)}
               />
             ))}
@@ -325,12 +327,27 @@ export function CampaignsPage() {
         />
       )}
 
-      {templateSetCampaignId && (
-        <TemplateSetPicker
-          campaignId={templateSetCampaignId}
-          currentSet={campaigns.find((c) => c.id === templateSetCampaignId)?.template_set ?? []}
-          open={!!templateSetCampaignId}
-          onClose={() => setTemplateSetCampaignId(null)}
+      {reminderCampaignId && (
+        <AppointmentTemplatePicker
+          campaignId={reminderCampaignId}
+          field="reminder_template_name"
+          currentName={campaigns.find((c) => c.id === reminderCampaignId)?.reminder_template_name ?? null}
+          title="Reminder template"
+          subtitle="Sent by the appointment bot at 10:00 South Africa time the day before the visit."
+          open={!!reminderCampaignId}
+          onClose={() => setReminderCampaignId(null)}
+        />
+      )}
+
+      {missedCampaignId && (
+        <AppointmentTemplatePicker
+          campaignId={missedCampaignId}
+          field="missed_appointment_template_name"
+          currentName={campaigns.find((c) => c.id === missedCampaignId)?.missed_appointment_template_name ?? null}
+          title="Missed appointment template"
+          subtitle="Sent only when a person presses the button after the appointment time has passed."
+          open={!!missedCampaignId}
+          onClose={() => setMissedCampaignId(null)}
         />
       )}
 
@@ -370,15 +387,15 @@ export function CampaignsPage() {
 // ─── Campaign Card (toggle removed) ──────────────────────────────────────────
 
 function CampaignCard({
-  campaign, onNavigate, onTemplateClick, onTemplateSetClick, onFollowupClick,
+  campaign, onNavigate, onTemplateClick, onReminderClick, onMissedClick, onFollowupClick,
 }: {
   campaign: Campaign;
   onNavigate: () => void;
   onTemplateClick: () => void;
-  onTemplateSetClick: () => void;
+  onReminderClick: () => void;
+  onMissedClick: () => void;
   onFollowupClick: () => void;
 }) {
-  const templateSet = campaign.template_set ?? [];
   return (
     <div
       className="card p-6 flex flex-col gap-5 cursor-pointer hover:border-indigo-300 hover:shadow-elevated transition-all duration-150 group bg-white"
@@ -421,27 +438,41 @@ function CampaignCard({
       </button>
 
       <button
-        onClick={(e) => { e.stopPropagation(); onTemplateSetClick(); }}
+        onClick={(e) => { e.stopPropagation(); onReminderClick(); }}
         className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-150 ${
-          templateSet.length
+          campaign.reminder_template_name
             ? 'border-indigo-200/80 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100/60'
             : 'border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 bg-slate-50/60'
         }`}
-        aria-label="Manage campaign template set"
+        aria-label="Assign reminder template"
       >
         <div className="flex items-center justify-between gap-2">
           <span className="truncate">
-            {templateSet.length
-              ? `Template set (${templateSet.length}/5)`
-              : '+ Assign template set'}
+            {campaign.reminder_template_name
+              ? `Reminder: ${campaign.reminder_template_name}`
+              : '+ Reminder template'}
           </span>
-          <span className="text-[10px] text-slate-400 font-mono shrink-0">Manage</span>
+          <span className="text-[10px] text-slate-400 font-mono shrink-0">Change</span>
         </div>
-        {templateSet.length > 0 && (
-          <p className="mt-1 text-[10px] font-medium text-indigo-700/80 truncate">
-            {templateSet.join(', ')}
-          </p>
-        )}
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onMissedClick(); }}
+        className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-150 ${
+          campaign.missed_appointment_template_name
+            ? 'border-rose-200/80 bg-rose-50/60 text-rose-800 hover:bg-rose-100/60'
+            : 'border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 bg-slate-50/60'
+        }`}
+        aria-label="Assign missed appointment template"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate">
+            {campaign.missed_appointment_template_name
+              ? `Missed: ${campaign.missed_appointment_template_name}`
+              : '+ Missed appointment template'}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono shrink-0">Change</span>
+        </div>
       </button>
 
       <button

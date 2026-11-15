@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Clock, MessageCircle, Settings, CalendarPlus, Store } from 'lucide-react';
+import { LayoutGrid, CalendarDays, Clock, MessageCircle, Settings, CalendarPlus, Store } from 'lucide-react';
 import { Logo } from '../ui/Logo';
 
 const navItems = [
   { to: '/campaigns', icon: LayoutGrid, label: 'Campaigns' },
+  { to: '/daily-appointments', icon: CalendarDays, label: 'Daily Appointment' },
   { to: '/last-30-days', icon: Clock, label: 'Last 30 Days' },
   { to: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', badge: 'Live' },
   { to: '/settings', icon: Settings, label: 'Settings' },

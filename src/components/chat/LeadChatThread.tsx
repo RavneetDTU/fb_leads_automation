@@ -13,7 +13,6 @@ import { Toggle } from '../ui/Toggle';
 import { ChatImage } from './ChatImage';
 import { MessageBody } from './MessageBody';
 import { TemplateChrome } from './TemplateChrome';
-import { TemplateSetDropdown } from './TemplateSetDropdown';
 
 const POLL_MS = 10_000;
 
@@ -62,7 +61,6 @@ export function LeadChatThread({ leadId, showIdentity = true }: LeadChatThreadPr
   const lead = leadQuery.data;
   const selectedCampaign =
     (campaignsQuery.data ?? []).find((c) => c.id === lead?.campaign_id) ?? null;
-  const campaignTemplateSet = selectedCampaign?.template_set ?? [];
   const templateCampaignId = selectedCampaign?.id || lead?.campaign_id || null;
   const isOldLead = Boolean(lead?.is_old_lead);
   const aiMode = isOldLead ? false : Boolean(lead?.ai_mode);
@@ -145,22 +143,6 @@ export function LeadChatThread({ leadId, showIdentity = true }: LeadChatThreadPr
     },
   });
 
-  const sendTemplateMutation = useMutation({
-    mutationFn: (templateName: string) =>
-      post<Message>(`/api/inbox/conversations/${leadId}/templates`, {
-        template_name: templateName,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['conv-messages', leadId] });
-      qc.invalidateQueries({ queryKey: ['conversations'] });
-      qc.invalidateQueries({ queryKey: ['leads'] });
-      toast('success', 'Template sent.');
-    },
-    onError: (err: Error) => {
-      toast('error', `Failed to send template: ${err.message}`);
-    },
-  });
-
   function handleSend() {
     if (!message.trim() || aiMode || isOldLead) return;
     sendMutation.mutate(message.trim());
@@ -192,19 +174,6 @@ export function LeadChatThread({ leadId, showIdentity = true }: LeadChatThreadPr
         <div className="flex items-center gap-3 shrink-0">
           {showIdentity && <StatusBadge status={lead?.status ?? 'NEW'} />}
           {isOldLead && <OldLeadBadge reason={lead?.old_lead_reason} />}
-          <TemplateSetDropdown
-            templates={campaignTemplateSet}
-            campaignId={templateCampaignId}
-            leadName={lead?.full_name ?? ''}
-            disabled={isOldLead || campaignTemplateSet.length === 0}
-            disabledReason={
-              isOldLead
-                ? 'Outbound messaging is disabled for old leads'
-                : 'No campaign templates'
-            }
-            sending={sendTemplateMutation.isPending}
-            onSend={(name) => sendTemplateMutation.mutate(name)}
-          />
           <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
             <Bot size={18} className={aiMode ? 'text-indigo-600' : 'text-slate-400'} />
             <span className="text-xs font-semibold text-slate-700">Jarvis AI Mode</span>

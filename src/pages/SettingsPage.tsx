@@ -195,8 +195,8 @@ export function SettingsPage() {
         <SettingsSection title="OpenAI LLM Configuration" subtitle="Models for conversational agent & template generation">
           <CopyField label="OpenAI API Key (Masked)" value={data?.openai_api_key ?? ''} />
           <Field label="Update OpenAI API Key" type="password" value={''} onChange={(v) => setField('openai_api_key', v || null)} placeholder="sk-… (enter to update)" />
-          <Field label="Conversational Agent Model" value={form.openai_model ?? ''} onChange={(v) => setField('openai_model', v)} placeholder="gpt-4o" />
-          <Field label="Template Generation Model" value={form.openai_model_for_templates ?? ''} onChange={(v) => setField('openai_model_for_templates', v)} placeholder="gpt-4o-mini" />
+          <Field label="Conversational Agent Model" value={form.openai_model ?? ''} onChange={(v) => setField('openai_model', v)} placeholder="gpt-6.1-sol" />
+          <Field label="Template Generation Model" value={form.openai_model_for_templates ?? ''} onChange={(v) => setField('openai_model_for_templates', v)} placeholder="gpt-6-luna" />
         </SettingsSection>
 
         {/* Supervisor Notifications Section */}
